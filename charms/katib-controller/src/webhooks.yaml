@@ -1,3 +1,4 @@
+---
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration
 metadata:
@@ -6,9 +7,8 @@ webhooks:
   - name: validator.experiment.katib.kubeflow.org
     sideEffects: None
     failurePolicy: Ignore
-    # TODO (andreyvelich): Migrate to v1 ?
     admissionReviewVersions:
-      - v1beta1
+      - v1
     clientConfig:
       caBundle: Cg==
       service:
@@ -35,7 +35,7 @@ webhooks:
     sideEffects: None
     failurePolicy: Ignore
     admissionReviewVersions:
-      - v1beta1
+      - v1
     clientConfig:
       caBundle: Cg==
       service:
@@ -56,7 +56,7 @@ webhooks:
     sideEffects: None
     failurePolicy: Ignore
     admissionReviewVersions:
-      - v1beta1
+      - v1
     clientConfig:
       caBundle: Cg==
       service:
