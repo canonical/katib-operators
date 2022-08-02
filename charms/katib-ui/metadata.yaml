@@ -22,3 +22,6 @@ requires:
 provides:
   katib-ui:
     interface: http
+  sidebar:
+    interface: sidebar
+    optional: true
