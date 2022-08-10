@@ -59,10 +59,12 @@ jobs:
     - name: Check out repo
       uses: actions/checkout@v2
 
-    - uses: balchua/microk8s-actions@v0.2.2
+    - name: Setup operator environment
+      uses: charmed-kubernetes/actions-operator@main
       with:
-        channel: "1.21/stable"
-        addons: '["dns", "storage", "rbac"]'
+        provider: microk8s
+        channel: 1.22/stable
+        charmcraft-channel: latest/candidate
 
     - name: Install dependencies
       run: |
