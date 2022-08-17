@@ -3,15 +3,4 @@ options:
     type: int
     default: 8080
     description: HTTP port
-  sidebar-text:
-    type: string
-    default: Experiments (AutoML)
-    description: Label text in dashboard sidebar
-  sidebar-icon:
-    type: string
-    default: kubeflow:katib
-    description: Icon name to be used in dashboard sidebar
-  sidebar-link:
-    type: string
-    default: /katib/
-    description: Url path associated with the sidebar element
+
