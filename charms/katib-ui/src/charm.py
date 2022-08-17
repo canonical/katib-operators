@@ -154,13 +154,15 @@ class Operator(CharmBase):
         event.relation.data[self.app].update(
             {
                 "config": json.dumps(
-                    {
-                        "app": self.app.name,
-                        "type": "item",
-                        "link": self.model.config["sidebar-link"],
-                        "text": self.model.config["sidebar-text"],
-                        "icon": self.model.config["sidebar-icon"],
-                    }
+                    [
+                        {
+                            "app": self.app.name,
+                            "type": "item",
+                            "link": "/katib/",
+                            "text": "Experiments (AutoML)",
+                            "icon": "kubeflow:katib",
+                        }
+                    ]
                 )
             }
         )
