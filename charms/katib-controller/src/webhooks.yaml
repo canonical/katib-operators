@@ -6,11 +6,11 @@ metadata:
 webhooks:
   - name: validator.experiment.katib.kubeflow.org
     sideEffects: None
-    failurePolicy: Ignore
+    failurePolicy: Fail
     admissionReviewVersions:
       - v1
     clientConfig:
-      caBundle: Cg==
+      caBundle: {{ ca_bundle }}
       service:
         name: katib-controller
         namespace: kubeflow
@@ -33,11 +33,11 @@ metadata:
 webhooks:
   - name: defaulter.experiment.katib.kubeflow.org
     sideEffects: None
-    failurePolicy: Ignore
+    failurePolicy: Fail
     admissionReviewVersions:
       - v1
     clientConfig:
-      caBundle: Cg==
+      caBundle: {{ ca_bundle }}
       service:
         name: katib-controller
         namespace: kubeflow
@@ -54,11 +54,11 @@ webhooks:
           - experiments
   - name: mutator.pod.katib.kubeflow.org
     sideEffects: None
-    failurePolicy: Ignore
+    failurePolicy: Fail
     admissionReviewVersions:
       - v1
     clientConfig:
-      caBundle: Cg==
+      caBundle: {{ ca_bundle }}
       service:
         name: katib-controller
         namespace: kubeflow
