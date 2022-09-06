@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 
 import logging
+from base64 import b64encode
 from pathlib import Path
 from subprocess import check_call
 
 import yaml
+from jinja2 import Environment, FileSystemLoader
 from oci_image import OCIImageResource, OCIImageResourceError
 from ops.charm import CharmBase
 from ops.framework import StoredState
@@ -38,6 +40,8 @@ class Operator(CharmBase):
         self._stored.set_default(**self.gen_certs())
         self.image = OCIImageResource(self, "oci-image")
 
+        self.env = Environment(loader=FileSystemLoader("src/"))
+
         self.prometheus_provider = MetricsEndpointProvider(
             charm=self,
             jobs=[
@@ -70,7 +74,7 @@ class Operator(CharmBase):
             self.model.unit.status = check_failed.status
             return
 
-        validating, mutating = yaml.safe_load_all(Path("src/webhooks.yaml").read_text())
+        validating, mutating = self._rendered_webhook_definitions()
 
         self.model.pod.set_spec(
             {
@@ -170,6 +174,10 @@ class Operator(CharmBase):
                                 "mountPath": "/tmp/cert",
                                 "files": [
                                     {
+                                        "path": "ca.crt",
+                                        "content": self._stored.ca,
+                                    },
+                                    {
                                         "path": "tls.crt",
                                         "content": self._stored.cert,
                                     },
@@ -224,6 +232,12 @@ class Operator(CharmBase):
         )
 
         self.model.unit.status = ActiveStatus()
+
+    def _rendered_webhook_definitions(self):
+        ca_crt = b64encode(self._stored.ca.encode("ascii")).decode("utf-8")
+        yaml_file = self.env.get_template("webhooks.yaml").render(ca_bundle=ca_crt)
+        validating, mutating = yaml.safe_load_all(yaml_file)
+        return validating, mutating
 
     def gen_certs(self):
         model = self.model.name
