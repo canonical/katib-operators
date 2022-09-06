@@ -85,6 +85,8 @@ jobs:
         cp -r canonical-osm/charms/interfaces/juju-relation-mysql mysql
         sg microk8s -c 'juju bootstrap microk8s uk8s'
         juju add-model kubeflow
+        # Katib requires the namespace to have certain labels for metrics collection
+        sg microk8s -c 'kubectl label namespace default katib.kubeflow.org/metrics-collector-injection=enabled'
         juju bundle deploy --build --destructive-mode --serial
         juju wait -wvt 600
 
