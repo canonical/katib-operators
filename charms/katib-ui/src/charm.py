@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
-import json
 import logging
 
+from charms.kubeflow_dashboard.v0.kubeflow_dashboard_sidebar import (
+    KubeflowDashboardSidebar,
+)
 from oci_image import OCIImageResource, OCIImageResourceError
-from ops.charm import CharmBase, RelationJoinedEvent
+from ops.charm import CharmBase
 from ops.main import main
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, WaitingStatus
 from serialized_data_interface import (
@@ -11,6 +13,16 @@ from serialized_data_interface import (
     NoVersionsListed,
     get_interfaces,
 )
+
+SIDEBAR_LINK = [
+    {
+        "position": 5,
+        "type": "item",
+        "link": "/katib/",
+        "text": "Experiments (AutoML)",
+        "icon": "kubeflow:katib",
+    }
+]
 
 logger = logging.getLogger(__name__)
 
@@ -32,19 +44,13 @@ class Operator(CharmBase):
     def __init__(self, framework):
         super().__init__(framework)
 
+        self.kubeflow_dashboard_sidebar = KubeflowDashboardSidebar(self, SIDEBAR_LINK)
         self.image = OCIImageResource(self, "oci-image")
         self.framework.observe(self.on.install, self.set_pod_spec)
         self.framework.observe(self.on.upgrade_charm, self.set_pod_spec)
         self.framework.observe(
             self.on["ingress"].relation_changed,
             self.set_pod_spec,
-        )
-        self.framework.observe(
-            self.on.sidebar_relation_joined, self._on_sidebar_relation_joined
-        )
-        self.framework.observe(
-            self.on.sidebar_relation_departed,
-            self._on_sidebar_relation_departed,
         )
 
     def set_pod_spec(self, event):
@@ -151,31 +157,6 @@ class Operator(CharmBase):
         except OCIImageResourceError as e:
             raise CheckFailed(f"{e.status.message}", e.status_type)
         return image_details
-
-    def _on_sidebar_relation_joined(self, event: RelationJoinedEvent):
-        if not self.unit.is_leader():
-            return
-        event.relation.data[self.app].update(
-            {
-                "config": json.dumps(
-                    [
-                        {
-                            "app": self.app.name,
-                            "position": 5,
-                            "type": "item",
-                            "link": "/katib/",
-                            "text": "Experiments (AutoML)",
-                            "icon": "kubeflow:katib",
-                        }
-                    ]
-                )
-            }
-        )
-
-    def _on_sidebar_relation_departed(self, event):
-        if not self.unit.is_leader():
-            return
-        event.relation.data[self.app].update({"config": json.dumps([])})
 
 
 if __name__ == "__main__":
