@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# Copyright 2022 Canonical Ltd.
+# See LICENSE file for licensing details.
 
 import logging
 
@@ -32,8 +34,12 @@ class Operator(CharmBase):
         self.framework.observe(self.on.config_changed, self.set_pod_spec)
         self.framework.observe(self.on.upgrade_charm, self.set_pod_spec)
         self.framework.observe(self.on.leader_elected, self.set_pod_spec)
-        self.framework.observe(self.on["mysql"].relation_joined, self.set_pod_spec)
-        self.framework.observe(self.on["mysql"].relation_changed, self.set_pod_spec)
+        self.framework.observe(
+            self.on["mysql"].relation_joined, self.set_pod_spec
+        )
+        self.framework.observe(
+            self.on["mysql"].relation_changed, self.set_pod_spec
+        )
 
     def set_pod_spec(self, event):
         try:
@@ -136,7 +142,9 @@ class Operator(CharmBase):
             # Ensure we've got some data sent over the relation
             mysql_data["root_password"]
         except (IndexError, StopIteration, KeyError):
-            raise CheckFailed("Waiting for mysql connection information", WaitingStatus)
+            raise CheckFailed(
+                "Waiting for mysql connection information", WaitingStatus
+            )
 
         return mysql_data
 

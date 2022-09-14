@@ -1,11 +1,19 @@
 #!/usr/bin/env python3
+# Copyright 2022 Canonical Ltd.
+# See LICENSE file for licensing details.
+
 import json
 import logging
 
 from oci_image import OCIImageResource, OCIImageResourceError
 from ops.charm import CharmBase, RelationJoinedEvent
 from ops.main import main
-from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, WaitingStatus
+from ops.model import (
+    ActiveStatus,
+    BlockedStatus,
+    MaintenanceStatus,
+    WaitingStatus,
+)
 from serialized_data_interface import (
     NoCompatibleVersions,
     NoVersionsListed,
