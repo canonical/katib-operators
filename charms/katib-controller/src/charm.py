@@ -109,10 +109,7 @@ class Operator(CharmBase):
                                 },
                                 {
                                     "apiGroups": ["rbac.authorization.k8s.io"],
-                                    "resources": [
-                                        "roles",
-                                        "rolebindings",
-                                    ],
+                                    "resources": ["roles", "rolebindings"],
                                     "verbs": ["*"],
                                 },
                                 {
@@ -142,7 +139,7 @@ class Operator(CharmBase):
                                 },
                             ],
                         }
-                    ],
+                    ]
                 },
                 "containers": [
                     {
@@ -160,37 +157,22 @@ class Operator(CharmBase):
                         "ports": [
                             {
                                 "name": "webhook",
-                                "containerPort": self.model.config[
-                                    "webhook-port"
-                                ],
+                                "containerPort": self.model.config["webhook-port"],
                             },
                             {
                                 "name": "metrics",
-                                "containerPort": self.model.config[
-                                    "metrics-port"
-                                ],
+                                "containerPort": self.model.config["metrics-port"],
                             },
                         ],
-                        "envConfig": {
-                            "KATIB_CORE_NAMESPACE": self.model.name,
-                        },
+                        "envConfig": {"KATIB_CORE_NAMESPACE": self.model.name},
                         "volumeConfig": [
                             {
                                 "name": "certs",
                                 "mountPath": "/tmp/cert",
                                 "files": [
-                                    {
-                                        "path": "ca.crt",
-                                        "content": self._stored.ca,
-                                    },
-                                    {
-                                        "path": "tls.crt",
-                                        "content": self._stored.cert,
-                                    },
-                                    {
-                                        "path": "tls.key",
-                                        "content": self._stored.key,
-                                    },
+                                    {"path": "ca.crt", "content": self._stored.ca},
+                                    {"path": "tls.crt", "content": self._stored.cert},
+                                    {"path": "tls.key", "content": self._stored.key},
                                 ],
                             }
                         ],
@@ -201,9 +183,7 @@ class Operator(CharmBase):
                 "kubernetesResources": {
                     "customResourceDefinitions": [
                         {"name": crd["metadata"]["name"], "spec": crd["spec"]}
-                        for crd in yaml.safe_load_all(
-                            Path("src/crds.yaml").read_text()
-                        )
+                        for crd in yaml.safe_load_all(Path("src/crds.yaml").read_text())
                     ],
                     "mutatingWebhookConfigurations": [
                         {
@@ -243,9 +223,7 @@ class Operator(CharmBase):
 
     def _rendered_webhook_definitions(self):
         ca_crt = b64encode(self._stored.ca.encode("ascii")).decode("utf-8")
-        yaml_file = self.env.get_template("webhooks.yaml").render(
-            ca_bundle=ca_crt
-        )
+        yaml_file = self.env.get_template("webhooks.yaml").render(ca_bundle=ca_crt)
         validating, mutating = yaml.safe_load_all(yaml_file)
         return validating, mutating
 

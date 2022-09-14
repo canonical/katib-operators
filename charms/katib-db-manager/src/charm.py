@@ -34,12 +34,8 @@ class Operator(CharmBase):
         self.framework.observe(self.on.config_changed, self.set_pod_spec)
         self.framework.observe(self.on.upgrade_charm, self.set_pod_spec)
         self.framework.observe(self.on.leader_elected, self.set_pod_spec)
-        self.framework.observe(
-            self.on["mysql"].relation_joined, self.set_pod_spec
-        )
-        self.framework.observe(
-            self.on["mysql"].relation_changed, self.set_pod_spec
-        )
+        self.framework.observe(self.on["mysql"].relation_joined, self.set_pod_spec)
+        self.framework.observe(self.on["mysql"].relation_changed, self.set_pod_spec)
 
     def set_pod_spec(self, event):
         try:
@@ -64,10 +60,7 @@ class Operator(CharmBase):
                             "rules": [
                                 {
                                     "apiGroups": [""],
-                                    "resources": [
-                                        "configmaps",
-                                        "namespaces",
-                                    ],
+                                    "resources": ["configmaps", "namespaces"],
                                     "verbs": ["*"],
                                 },
                                 {
@@ -89,10 +82,7 @@ class Operator(CharmBase):
                         "command": ["./katib-db-manager"],
                         "imageDetails": image_details,
                         "ports": [
-                            {
-                                "name": "api",
-                                "containerPort": self.model.config["port"],
-                            }
+                            {"name": "api", "containerPort": self.model.config["port"]}
                         ],
                         "envConfig": {
                             "DB_NAME": "mysql",
@@ -113,11 +103,11 @@ class Operator(CharmBase):
                                 "initialDelaySeconds": 10,
                                 "periodSeconds": 60,
                                 "failureThreshold": 5,
-                            },
+                            }
                         },
                     }
                 ],
-            },
+            }
         )
 
         self.model.unit.status = ActiveStatus()
@@ -142,9 +132,7 @@ class Operator(CharmBase):
             # Ensure we've got some data sent over the relation
             mysql_data["root_password"]
         except (IndexError, StopIteration, KeyError):
-            raise CheckFailed(
-                "Waiting for mysql connection information", WaitingStatus
-            )
+            raise CheckFailed("Waiting for mysql connection information", WaitingStatus)
 
         return mysql_data
 

@@ -8,12 +8,7 @@ import logging
 from oci_image import OCIImageResource, OCIImageResourceError
 from ops.charm import CharmBase, RelationJoinedEvent
 from ops.main import main
-from ops.model import (
-    ActiveStatus,
-    BlockedStatus,
-    MaintenanceStatus,
-    WaitingStatus,
-)
+from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, WaitingStatus
 from serialized_data_interface import (
     NoCompatibleVersions,
     NoVersionsListed,
@@ -44,16 +39,12 @@ class Operator(CharmBase):
         self.framework.observe(self.on.install, self.set_pod_spec)
         self.framework.observe(self.on.upgrade_charm, self.set_pod_spec)
         self.framework.observe(self.on.leader_elected, self.set_pod_spec)
-        self.framework.observe(
-            self.on["ingress"].relation_changed,
-            self.set_pod_spec,
-        )
+        self.framework.observe(self.on["ingress"].relation_changed, self.set_pod_spec)
         self.framework.observe(
             self.on.sidebar_relation_joined, self._on_sidebar_relation_joined
         )
         self.framework.observe(
-            self.on.sidebar_relation_departed,
-            self._on_sidebar_relation_departed,
+            self.on.sidebar_relation_departed, self._on_sidebar_relation_departed
         )
 
     def set_pod_spec(self, event):
@@ -89,10 +80,7 @@ class Operator(CharmBase):
                             "rules": [
                                 {
                                     "apiGroups": [""],
-                                    "resources": [
-                                        "configmaps",
-                                        "namespaces",
-                                    ],
+                                    "resources": ["configmaps", "namespaces"],
                                     "verbs": ["*"],
                                 },
                                 {
@@ -115,17 +103,12 @@ class Operator(CharmBase):
                         "args": [f"--port={self.model.config['port']}"],
                         "imageDetails": image_details,
                         "ports": [
-                            {
-                                "name": "http",
-                                "containerPort": self.model.config["port"],
-                            }
+                            {"name": "http", "containerPort": self.model.config["port"]}
                         ],
-                        "envConfig": {
-                            "KATIB_CORE_NAMESPACE": self.model.name,
-                        },
+                        "envConfig": {"KATIB_CORE_NAMESPACE": self.model.name},
                     }
                 ],
-            },
+            }
         )
 
         self.model.unit.status = ActiveStatus()
