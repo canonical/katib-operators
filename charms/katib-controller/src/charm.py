@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# Copyright 2022 Canonical Ltd.
+# See LICENSE file for licensing details.
 
 import logging
 from base64 import b64encode
@@ -107,10 +109,7 @@ class Operator(CharmBase):
                                 },
                                 {
                                     "apiGroups": ["rbac.authorization.k8s.io"],
-                                    "resources": [
-                                        "roles",
-                                        "rolebindings",
-                                    ],
+                                    "resources": ["roles", "rolebindings"],
                                     "verbs": ["*"],
                                 },
                                 {
@@ -140,7 +139,7 @@ class Operator(CharmBase):
                                 },
                             ],
                         }
-                    ],
+                    ]
                 },
                 "containers": [
                     {
@@ -165,26 +164,15 @@ class Operator(CharmBase):
                                 "containerPort": self.model.config["metrics-port"],
                             },
                         ],
-                        "envConfig": {
-                            "KATIB_CORE_NAMESPACE": self.model.name,
-                        },
+                        "envConfig": {"KATIB_CORE_NAMESPACE": self.model.name},
                         "volumeConfig": [
                             {
                                 "name": "certs",
                                 "mountPath": "/tmp/cert",
                                 "files": [
-                                    {
-                                        "path": "ca.crt",
-                                        "content": self._stored.ca,
-                                    },
-                                    {
-                                        "path": "tls.crt",
-                                        "content": self._stored.cert,
-                                    },
-                                    {
-                                        "path": "tls.key",
-                                        "content": self._stored.key,
-                                    },
+                                    {"path": "ca.crt", "content": self._stored.ca},
+                                    {"path": "tls.crt", "content": self._stored.cert},
+                                    {"path": "tls.key", "content": self._stored.key},
                                 ],
                             }
                         ],

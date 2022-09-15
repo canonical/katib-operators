@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# Copyright 2022 Canonical Ltd.
+# See LICENSE file for licensing details.
 
 import logging
 
@@ -58,10 +60,7 @@ class Operator(CharmBase):
                             "rules": [
                                 {
                                     "apiGroups": [""],
-                                    "resources": [
-                                        "configmaps",
-                                        "namespaces",
-                                    ],
+                                    "resources": ["configmaps", "namespaces"],
                                     "verbs": ["*"],
                                 },
                                 {
@@ -83,10 +82,7 @@ class Operator(CharmBase):
                         "command": ["./katib-db-manager"],
                         "imageDetails": image_details,
                         "ports": [
-                            {
-                                "name": "api",
-                                "containerPort": self.model.config["port"],
-                            }
+                            {"name": "api", "containerPort": self.model.config["port"]}
                         ],
                         "envConfig": {
                             "DB_NAME": "mysql",
@@ -107,11 +103,11 @@ class Operator(CharmBase):
                                 "initialDelaySeconds": 10,
                                 "periodSeconds": 60,
                                 "failureThreshold": 5,
-                            },
+                            }
                         },
                     }
                 ],
-            },
+            }
         )
 
         self.model.unit.status = ActiveStatus()
