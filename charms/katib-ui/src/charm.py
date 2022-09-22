@@ -5,8 +5,8 @@
 import json
 import logging
 
-from oci_image import OCIImageResource, OCIImageResourceError
 from ops.charm import CharmBase, RelationJoinedEvent
+from ops.pebble import Layer, ChangeError
 from ops.main import main
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, WaitingStatus
 from serialized_data_interface import (
@@ -14,8 +14,9 @@ from serialized_data_interface import (
     NoVersionsListed,
     get_interfaces,
 )
-
-logger = logging.getLogger(__name__)
+from charms.observability_libs.v1.kubernetes_service_patch import KubernetesServicePatch
+from lightkube import Client
+from lightkube.models.core_v1 import ServicePort
 
 
 class CheckFailed(Exception):
@@ -29,17 +30,32 @@ class CheckFailed(Exception):
         self.status = status_type(self.msg)
 
 
-class Operator(CharmBase):
+class KatibUIOperator(CharmBase):
     """Deploys the katib-ui service."""
 
     def __init__(self, framework):
         super().__init__(framework)
+        self.logger = logging.getLogger(__name__)
+        self._container_name = "katib-ui"
+        self._name = self.model.app.name
+        self._namespace = self.model.name
+        self._container = self.unit.get_container(self._container_name)
+        self._port = self.model.config["port"]
+        port = ServicePort(int(self._port), name=f"{self.app.name}")
+        self.service_patcher = KubernetesServicePatch(self, [port])
+        self.lightkube_client = Client(
+            namespace=self.model.name, field_manager="lightkube"
+        )
 
-        self.image = OCIImageResource(self, "oci-image")
-        self.framework.observe(self.on.install, self.set_pod_spec)
-        self.framework.observe(self.on.upgrade_charm, self.set_pod_spec)
-        self.framework.observe(self.on.leader_elected, self.set_pod_spec)
-        self.framework.observe(self.on["ingress"].relation_changed, self.set_pod_spec)
+        for event in [
+            self.on.install,
+            self.on.leader_elected,
+            self.on.upgrade_charm,
+            self.on.config_changed,
+            self.on["ingress"].relation_changed,
+            self.on.katib_ui_pebble_ready,
+        ]:
+            self.framework.observe(event, self.main)
         self.framework.observe(
             self.on.sidebar_relation_joined, self._on_sidebar_relation_joined
         )
@@ -47,71 +63,42 @@ class Operator(CharmBase):
             self.on.sidebar_relation_departed, self._on_sidebar_relation_departed
         )
 
-    def set_pod_spec(self, event):
-        try:
+    @property
+    def container(self):
+        return self._container
 
-            self._check_leader()
+    @property
+    def _katib_ui_layer(self) -> Layer:
+        layer_config = {
+            "summary": "katib-ui-operator layer",
+            "description": "pebble config layer for katib-ui-operator",
+            "services": {
+                self._container_name: {
+                    "override": "replace",
+                    "summary": "entrypoint of the katib-ui-operator image",
+                    "command": f"./katib-ui --port={self._port}",
+                    "startup": "enabled",
+                    "environment": {"KATIB_CORE_NAMESPACE": self.model.name},
+                }
+            },
+        }
+        return Layer(layer_config)
 
-            interfaces = self._get_interfaces()
-
-            image_details = self._check_image_details()
-
-        except CheckFailed as check_failed:
-            self.model.unit.status = check_failed.status
-            return
-
-        self._configure_ingress(interfaces)
-
-        self.model.unit.status = MaintenanceStatus("Setting pod spec")
-
-        try:
-            image_details = self.image.fetch()
-        except OCIImageResourceError as e:
-            self.model.unit.status = e.status
-            return
-
-        self.model.pod.set_spec(
-            {
-                "version": 3,
-                "serviceAccount": {
-                    "roles": [
-                        {
-                            "global": True,
-                            "rules": [
-                                {
-                                    "apiGroups": [""],
-                                    "resources": ["configmaps", "namespaces"],
-                                    "verbs": ["*"],
-                                },
-                                {
-                                    "apiGroups": ["kubeflow.org"],
-                                    "resources": [
-                                        "experiments",
-                                        "trials",
-                                        "suggestions",
-                                    ],
-                                    "verbs": ["*"],
-                                },
-                            ],
-                        }
-                    ]
-                },
-                "containers": [
-                    {
-                        "name": "katib-ui",
-                        "command": ["./katib-ui"],
-                        "args": [f"--port={self.model.config['port']}"],
-                        "imageDetails": image_details,
-                        "ports": [
-                            {"name": "http", "containerPort": self.model.config["port"]}
-                        ],
-                        "envConfig": {"KATIB_CORE_NAMESPACE": self.model.name},
-                    }
-                ],
-            }
-        )
-
-        self.model.unit.status = ActiveStatus()
+    def _update_layer(self) -> None:
+        """Updates the Pebble configuration layer if changed."""
+        current_layer = self.container.get_plan()
+        new_layer = self._katib_ui_layer
+        self.logger.debug(f"NEW LAYER: {new_layer}")
+        if current_layer.services != new_layer.services:
+            self.unit.status = MaintenanceStatus("Applying new pebble layer")
+            self.container.add_layer(self._container_name, new_layer, combine=True)
+            try:
+                self.logger.info(
+                    "Pebble plan updated with new configuration, replanning"
+                )
+                self.container.replan()
+            except ChangeError:
+                raise CheckFailed("Failed to replan", BlockedStatus)
 
     def _configure_ingress(self, interfaces):
         if interfaces["ingress"]:
@@ -123,11 +110,6 @@ class Operator(CharmBase):
                 }
             )
 
-    def _check_leader(self):
-        if not self.unit.is_leader():
-            # We can't do anything useful when not the leader, so do nothing.
-            raise CheckFailed("Waiting for leadership", WaitingStatus)
-
     def _get_interfaces(self):
         try:
             interfaces = get_interfaces(self)
@@ -137,12 +119,20 @@ class Operator(CharmBase):
             raise CheckFailed(err, BlockedStatus)
         return interfaces
 
-    def _check_image_details(self):
-        try:
-            image_details = self.image.fetch()
-        except OCIImageResourceError as e:
-            raise CheckFailed(f"{e.status.message}", e.status_type)
-        return image_details
+    # def _check_image_details(self):
+    #     try:
+    #         image_details = self.image.fetch()
+    #     except OCIImageResourceError as e:
+    #         raise CheckFailed(f"{e.status.message}", e.status_type)
+    #     return image_details
+
+    def _check_leader(self):
+        if not self.unit.is_leader():
+            raise CheckFailed("Waiting for leadership", WaitingStatus)
+
+    def _check_container_connection(self):
+        if not self.container.can_connect():
+            raise CheckFailed("Pod startup is not complete", MaintenanceStatus)
 
     def _on_sidebar_relation_joined(self, event: RelationJoinedEvent):
         if not self.unit.is_leader():
@@ -169,6 +159,30 @@ class Operator(CharmBase):
             return
         event.relation.data[self.app].update({"config": json.dumps([])})
 
+    def _handle_ingress(self, interfaces):
+        if interfaces["ingress"]:
+            interfaces["ingress"].send_data(
+                {
+                    "prefix": "/",
+                    "rewrite": "/",
+                    "service": self.model.app.name,
+                    "port": self.model.config["port"],
+                }
+            )
+
+    def main(self, _) -> None:
+        """Main entry point for the Charm."""
+        try:
+            self._check_container_connection()
+            self._check_leader()
+            interfaces = self._get_interfaces()
+            self._handle_ingress(interfaces)
+            self._update_layer()
+        except CheckFailed as e:
+            self.model.unit.status = e.status
+            return
+        self.model.unit.status = ActiveStatus()
+
 
 if __name__ == "__main__":
-    main(Operator)
+    main(KatibUIOperator)
