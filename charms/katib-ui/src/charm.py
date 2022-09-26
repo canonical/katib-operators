@@ -21,9 +21,7 @@ from lightkube.generic_resource import load_in_cluster_generic_resources
 from charmed_kubeflow_chisme.pebble import update_layer
 from charmed_kubeflow_chisme.kubernetes import KubernetesResourceHandler as KRH
 
-K8S_RESOURCE_FILES = [
-    "src/templates/auth_manifests.yaml.j2",
-]
+K8S_RESOURCE_FILES = ["src/templates/auth_manifests.yaml.j2"]
 
 
 class CheckFailed(Exception):
@@ -91,10 +89,7 @@ class KatibUIOperator(CharmBase):
 
     @property
     def _context(self):
-        context = {
-            "app_name": self.model.app.name,
-            "namespace": self.model.name,
-        }
+        context = {"app_name": self.model.app.name, "namespace": self.model.name}
         return context
 
     @property
@@ -183,7 +178,9 @@ class KatibUIOperator(CharmBase):
             interfaces = self._get_interfaces()
             self._handle_ingress(interfaces)
             self._deploy_k8s_resources()
-            update_layer(self._container_name, self.container, self._katib_ui_layer, self.logger)
+            update_layer(
+                self._container_name, self.container, self._katib_ui_layer, self.logger
+            )
         except CheckFailed as e:
             self.model.unit.status = e.status
             return
