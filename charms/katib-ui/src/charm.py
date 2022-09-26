@@ -6,7 +6,7 @@ import json
 import logging
 
 from ops.charm import CharmBase, RelationJoinedEvent
-from ops.pebble import Layer, ChangeError
+from ops.pebble import Layer
 from ops.main import main
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, WaitingStatus
 from serialized_data_interface import (
@@ -15,8 +15,15 @@ from serialized_data_interface import (
     get_interfaces,
 )
 from charms.observability_libs.v1.kubernetes_service_patch import KubernetesServicePatch
-from lightkube import Client
 from lightkube.models.core_v1 import ServicePort
+from lightkube import ApiError
+from lightkube.generic_resource import load_in_cluster_generic_resources
+from charmed_kubeflow_chisme.pebble import update_layer
+from charmed_kubeflow_chisme.kubernetes import KubernetesResourceHandler as KRH
+
+K8S_RESOURCE_FILES = [
+    "src/templates/auth_manifests.yaml.j2",
+]
 
 
 class CheckFailed(Exception):
@@ -37,15 +44,14 @@ class KatibUIOperator(CharmBase):
         super().__init__(framework)
         self.logger = logging.getLogger(__name__)
         self._container_name = "katib-ui"
-        self._name = self.model.app.name
         self._namespace = self.model.name
-        self._container = self.unit.get_container(self._container_name)
+        self._name = self.model.app.name
+        self._container = self.unit.get_container(self._name)
+        self._lightkube_field_manager = "lightkube"
         self._port = self.model.config["port"]
         port = ServicePort(int(self._port), name=f"{self.app.name}")
         self.service_patcher = KubernetesServicePatch(self, [port])
-        self.lightkube_client = Client(
-            namespace=self.model.name, field_manager="lightkube"
-        )
+        self._k8s_resource_handler = None
 
         for event in [
             self.on.install,
@@ -68,6 +74,30 @@ class KatibUIOperator(CharmBase):
         return self._container
 
     @property
+    def k8s_resource_handler(self):
+        if not self._k8s_resource_handler:
+            self._k8s_resource_handler = KRH(
+                field_manager=self._lightkube_field_manager,
+                template_files=K8S_RESOURCE_FILES,
+                context=self._context,
+                logger=self.logger,
+            )
+        load_in_cluster_generic_resources(self._k8s_resource_handler.lightkube_client)
+        return self._k8s_resource_handler
+
+    @k8s_resource_handler.setter
+    def k8s_resource_handler(self, handler: KRH):
+        self._k8s_resource_handler = handler
+
+    @property
+    def _context(self):
+        context = {
+            "app_name": self.model.app.name,
+            "namespace": self.model.name,
+        }
+        return context
+
+    @property
     def _katib_ui_layer(self) -> Layer:
         layer_config = {
             "summary": "katib-ui-operator layer",
@@ -84,31 +114,13 @@ class KatibUIOperator(CharmBase):
         }
         return Layer(layer_config)
 
-    def _update_layer(self) -> None:
-        """Updates the Pebble configuration layer if changed."""
-        current_layer = self.container.get_plan()
-        new_layer = self._katib_ui_layer
-        self.logger.debug(f"NEW LAYER: {new_layer}")
-        if current_layer.services != new_layer.services:
-            self.unit.status = MaintenanceStatus("Applying new pebble layer")
-            self.container.add_layer(self._container_name, new_layer, combine=True)
-            try:
-                self.logger.info(
-                    "Pebble plan updated with new configuration, replanning"
-                )
-                self.container.replan()
-            except ChangeError:
-                raise CheckFailed("Failed to replan", BlockedStatus)
-
-    def _configure_ingress(self, interfaces):
-        if interfaces["ingress"]:
-            interfaces["ingress"].send_data(
-                {
-                    "prefix": "/katib/",
-                    "service": self.model.app.name,
-                    "port": self.model.config["port"],
-                }
-            )
+    def _deploy_k8s_resources(self) -> None:
+        try:
+            self.unit.status = MaintenanceStatus("Creating k8s resources")
+            self.k8s_resource_handler.apply()
+        except ApiError:
+            raise CheckFailed("kubernetes resource creation failed", BlockedStatus)
+        self.model.unit.status = ActiveStatus()
 
     def _get_interfaces(self):
         try:
@@ -118,13 +130,6 @@ class KatibUIOperator(CharmBase):
         except NoCompatibleVersions as err:
             raise CheckFailed(err, BlockedStatus)
         return interfaces
-
-    # def _check_image_details(self):
-    #     try:
-    #         image_details = self.image.fetch()
-    #     except OCIImageResourceError as e:
-    #         raise CheckFailed(f"{e.status.message}", e.status_type)
-    #     return image_details
 
     def _check_leader(self):
         if not self.unit.is_leader():
@@ -163,8 +168,8 @@ class KatibUIOperator(CharmBase):
         if interfaces["ingress"]:
             interfaces["ingress"].send_data(
                 {
-                    "prefix": "/",
-                    "rewrite": "/",
+                    "prefix": "/katib/",
+                    "rewrite": "/katib/",
                     "service": self.model.app.name,
                     "port": self.model.config["port"],
                 }
@@ -177,7 +182,8 @@ class KatibUIOperator(CharmBase):
             self._check_leader()
             interfaces = self._get_interfaces()
             self._handle_ingress(interfaces)
-            self._update_layer()
+            self._deploy_k8s_resources()
+            update_layer(self._container_name, self.container, self._katib_ui_layer, self.logger)
         except CheckFailed as e:
             self.model.unit.status = e.status
             return
