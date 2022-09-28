@@ -42,7 +42,7 @@ async def test_deploy_katib_charms(ops_test: OpsTest):
     )
 
     await ops_test.model.deploy(
-        ui_charm, resources={"oci-image": ui_image_path}
+        ui_charm, resources={"oci-image": ui_image_path}, trust=True
     )
 
     # Deploy katib-db
