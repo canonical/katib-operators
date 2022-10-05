@@ -8,3 +8,5 @@ juju==3.0.1
 pytest
 pyyaml
 lightkube==0.11.0
+pytest-operator
+tenacity==8.1.0

@@ -2,14 +2,16 @@
 # See LICENSE file for licensing details.
 
 from pathlib import Path
-import time
-import pytest
 import yaml
-from pytest_operator.plugin import OpsTest
-from lightkube.resources.core_v1 import Namespace
-import lightkube
 import logging
-from lightkube.generic_resource import create_namespaced_resource
+
+import lightkube
+import lightkube.resources.core_v1
+import lightkube.generic_resource
+import tenacity
+import pytest
+
+from pytest_operator.plugin import OpsTest
 
 CONTROLLER_PATH = Path("charms/katib-controller")
 UI_PATH = Path("charms/katib-ui")
@@ -87,14 +89,16 @@ async def test_create_experiment(ops_test: OpsTest):
     lightkube_client = lightkube.Client()
 
     # Add metrics collector injection enabled label to namespace
-    this_ns = lightkube_client.get(res=Namespace, name=namespace)
-    this_ns.metadata.labels.update(
+    test_namespace = lightkube_client.get(res=lightkube.resources.core_v1.Namespace, name=namespace)
+    test_namespace.metadata.labels.update(
         {"katib.kubeflow.org/metrics-collector-injection": "enabled"}
     )
-    lightkube_client.patch(res=Namespace, name=this_ns.metadata.name, obj=this_ns)
+    lightkube_client.patch(res=lightkube.resources.core_v1.Namespace, 
+                           name=test_namespace.metadata.name,
+                           obj=test_namespace)
 
     # Create Experiment resource
-    Experiment = create_namespaced_resource(
+    exp_class = lightkube.generic_resource.create_namespaced_resource(
         group="kubeflow.org",
         version="v1beta1",
         kind="experiment",
@@ -105,28 +109,45 @@ async def test_create_experiment(ops_test: OpsTest):
     # Create Experiment instance
     experiment_file = "examples/v1beta1/hp-tuning/grid-example.yaml"
     with open(experiment_file) as f:
-        exp = Experiment(yaml.safe_load(f.read()))
-        lightkube_client.create(exp, namespace=namespace)
+        exp_object = exp_class(yaml.safe_load(f.read()))
+        lightkube_client.create(exp_object, namespace=namespace)
 
-    # Check if Experiment Succeeded
-    for i in range(30):
+    @tenacity.retry(
+        wait=tenacity.wait_exponential(multiplier=1, min=1, max=15),
+        stop=tenacity.stop_after_delay(30),
+        reraise=True,
+    )
+    def assert_get_experiment():
+        """Asserts on the experiment.
+        Retries multiple times using tenacity to allow time for the experiment
+        to be created.
+        """
+        exp = lightkube_client.get(
+            exp_class, name=exp_object.metadata.name, namespace=namespace
+        )
 
-        experiment = lightkube_client.get(Experiment, name="grid", namespace=namespace)
+        assert exp is not None, f"{exp_object.metadata.name} does not exist"
 
-        try:
-            status = experiment.get("status", {}).get("conditions")[-1].get("type")
+    @tenacity.retry(
+        wait=tenacity.wait_exponential(multiplier=2, min=1, max=30),
+        stop=tenacity.stop_after_attempt(10),
+        reraise=True,
+    )
+    def assert_exp_status_running_success():
+        """Asserts on the experiment status.
+        Retries multiple times using tenacity to allow time for the experiment
+        to change its status from None -> Created -> Running/Succeeded.
+        """
+        exp_status = lightkube_client.get(
+            exp_class.Status, name=exp_object.metadata.name, namespace=namespace
+        ).status["conditions"][-1]["type"]
 
-        except TypeError:
-            status = None
+        logger.info(f"Experiment Status is {exp_status}")
 
-        if status == "Succeeded":
-            logger.info("Experiment Succeeded")
-            break
+        # Check whether the last status of Experiment is Success
+        assert exp_status in [
+            "Succeeded",
+        ], f"{exp_object.metadata.name} did not succeed (status == {exp_status})"
 
-        else:
-            logger.info(f"Waiting for Experiment.. Status: {status}")
-
-        time.sleep(5)
-
-    else:
-        pytest.fail("Waited too long for Experiment!")
+    assert_get_experiment()
+    assert_exp_status_running_success()
