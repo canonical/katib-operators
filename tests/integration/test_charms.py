@@ -147,7 +147,7 @@ async def test_create_experiment(ops_test: OpsTest):
         reraise=True,
     )
     def assert_exp_status_running():
-        """Asserts on the experiment status.
+        """Asserts the experiment status is Running.
         Retries multiple times using tenacity to allow time for the experiment
         to change its status from None -> Created -> Running
         """
