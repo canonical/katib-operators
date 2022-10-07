@@ -131,7 +131,7 @@ async def test_create_experiment(ops_test: OpsTest):
         reraise=True,
     )
     def assert_get_experiment():
-        """Asserts on the experiment.
+        """Asserts on the presence of the experiment in the cluster.
         Retries multiple times using tenacity to allow time for the experiment
         to be created.
         """
