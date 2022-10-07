@@ -89,13 +89,17 @@ async def test_create_experiment(ops_test: OpsTest):
     lightkube_client = lightkube.Client()
 
     # Add metrics collector injection enabled label to namespace
-    test_namespace = lightkube_client.get(res=lightkube.resources.core_v1.Namespace, name=namespace)
+    test_namespace = lightkube_client.get(
+        res=lightkube.resources.core_v1.Namespace, name=namespace
+    )
     test_namespace.metadata.labels.update(
         {"katib.kubeflow.org/metrics-collector-injection": "enabled"}
     )
-    lightkube_client.patch(res=lightkube.resources.core_v1.Namespace, 
-                           name=test_namespace.metadata.name,
-                           obj=test_namespace)
+    lightkube_client.patch(
+        res=lightkube.resources.core_v1.Namespace,
+        name=test_namespace.metadata.name,
+        obj=test_namespace,
+    )
 
     # Create Experiment resource
     exp_class = lightkube.generic_resource.create_namespaced_resource(
@@ -103,6 +107,15 @@ async def test_create_experiment(ops_test: OpsTest):
         version="v1beta1",
         kind="experiment",
         plural="experiments",
+        verbs=None,
+    )
+
+    # Create Trial resource
+    trial_class = lightkube.generic_resource.create_namespaced_resource(
+        group="kubeflow.org",
+        version="v1beta1",
+        kind="trial",
+        plural="trials",
         verbs=None,
     )
 
@@ -133,10 +146,10 @@ async def test_create_experiment(ops_test: OpsTest):
         stop=tenacity.stop_after_attempt(10),
         reraise=True,
     )
-    def assert_exp_status_running_success():
+    def assert_exp_status_running():
         """Asserts on the experiment status.
         Retries multiple times using tenacity to allow time for the experiment
-        to change its status from None -> Created -> Running/Succeeded.
+        to change its status from None -> Created -> Running
         """
         exp_status = lightkube_client.get(
             exp_class.Status, name=exp_object.metadata.name, namespace=namespace
@@ -144,10 +157,29 @@ async def test_create_experiment(ops_test: OpsTest):
 
         logger.info(f"Experiment Status is {exp_status}")
 
-        # Check whether the last status of Experiment is Success
-        assert exp_status in [
-            "Succeeded",
-        ], f"{exp_object.metadata.name} did not succeed (status == {exp_status})"
+        # Check experiment is running
+        assert (
+            exp_status == "Running"
+        ), f"{exp_object.metadata.name} not running status = {exp_status})"
+
+    @tenacity.retry(
+        wait=tenacity.wait_exponential(multiplier=2, min=1, max=15),
+        stop=tenacity.stop_after_attempt(10),
+        reraise=True,
+    )
+    def assert_trial_status_running():
+        """Asserts on the trial status.
+        Retries multiple times using tenacity to allow the trial
+        to be in Running state
+        """
+        trials = lightkube_client.list(trial_class, namespace=namespace)
+        trial = next(trials)
+        trial_status = trial.status["conditions"][-1]["type"]
+        logger.info(f"Trial Status is {trial_status}")
+        assert (
+            trial_status == "Running"
+        ), f"{trial.metadata.name} not running, status = {trial_status}"
 
     assert_get_experiment()
-    assert_exp_status_running_success()
+    assert_exp_status_running()
+    assert_trial_status_running()
