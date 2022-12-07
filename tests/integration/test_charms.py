@@ -1,25 +1,22 @@
 # Copyright 2022 Canonical Ltd.
 # See LICENSE file for licensing details.
 
-from pathlib import Path
-import yaml
 import logging
+from pathlib import Path
 
 import lightkube
-import lightkube.resources.core_v1
 import lightkube.generic_resource
-import tenacity
+import lightkube.resources.core_v1
 import pytest
-
+import tenacity
+import yaml
 from pytest_operator.plugin import OpsTest
 
 CONTROLLER_PATH = Path("charms/katib-controller")
 UI_PATH = Path("charms/katib-ui")
 DB_PATH = Path("charms/katib-db-manager")
 
-CONTROLLER_METADATA = yaml.safe_load(
-    Path(f"{CONTROLLER_PATH}/metadata.yaml").read_text()
-)
+CONTROLLER_METADATA = yaml.safe_load(Path(f"{CONTROLLER_PATH}/metadata.yaml").read_text())
 UI_METADATA = yaml.safe_load(Path(f"{UI_PATH}/metadata.yaml").read_text())
 DB_METADATA = yaml.safe_load(Path(f"{DB_PATH}/metadata.yaml").read_text())
 
@@ -40,24 +37,16 @@ async def test_deploy_katib_charms(ops_test: OpsTest):
     ui_charm = await ops_test.build_charm(UI_PATH)
 
     # Gather metadata
-    controller_image_path = CONTROLLER_METADATA["resources"]["oci-image"][
-        "upstream-source"
-    ]
+    controller_image_path = CONTROLLER_METADATA["resources"]["oci-image"]["upstream-source"]
     db_image_path = DB_METADATA["resources"]["oci-image"]["upstream-source"]
     ui_image_path = UI_METADATA["resources"]["oci-image"]["upstream-source"]
 
     # Deploy katib-controller, katib-db-manager, and katib-ui charms
-    await ops_test.model.deploy(
-        controller_charm, resources={"oci-image": controller_image_path}
-    )
+    await ops_test.model.deploy(controller_charm, resources={"oci-image": controller_image_path})
 
-    await ops_test.model.deploy(
-        db_manager_charm, resources={"oci-image": db_image_path}
-    )
+    await ops_test.model.deploy(db_manager_charm, resources={"oci-image": db_image_path})
 
-    await ops_test.model.deploy(
-        ui_charm, resources={"oci-image": ui_image_path}, trust=True
-    )
+    await ops_test.model.deploy(ui_charm, resources={"oci-image": ui_image_path}, trust=True)
 
     # Deploy katib-db
     await ops_test.model.deploy(
@@ -135,9 +124,7 @@ async def test_create_experiment(ops_test: OpsTest):
         Retries multiple times using tenacity to allow time for the experiment
         to be created.
         """
-        exp = lightkube_client.get(
-            exp_class, name=exp_object.metadata.name, namespace=namespace
-        )
+        exp = lightkube_client.get(exp_class, name=exp_object.metadata.name, namespace=namespace)
 
         assert exp is not None, f"{exp_object.metadata.name} does not exist"
 

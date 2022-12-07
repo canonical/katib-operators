@@ -22,11 +22,11 @@ Alternatively, you can `brew install juju` on macOS or download the [Juju instal
    
     juju add-k8s myk8scloud --cluster=foo --kubeconfig=path/to/config 
    
-   If you are on AKS, EKS, or GKE, append `--aks`, `--eks`, or `--gke`. 
+   If you are on ASK, EKS, or GKE, append `--aks`, `--eks`, or `--gke`. 
 
    For more, see [Juju docs](https://juju.is/docs/clouds).
    
-### 3. Create a Juju controller and boostrap to your cluster
+### 3. Create a Juju controller and bootstrap to your cluster
 
     juju bootstrap myk8scloud my-controller
    
