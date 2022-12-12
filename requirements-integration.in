@@ -1,12 +1,9 @@
 # Copyright 2021 Canonical Ltd.
 # See LICENSE file for licensing details.
 
-flake8==4.0.1
-black
-flake8-copyright<0.3
-juju==3.0.1
+juju
 pytest
 pyyaml
-lightkube==0.11.0
+lightkube
 pytest-operator
-tenacity==8.1.0
+tenacity
