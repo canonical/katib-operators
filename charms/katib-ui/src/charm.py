@@ -5,21 +5,17 @@
 import json
 import logging
 
-from ops.charm import CharmBase, RelationJoinedEvent
-from ops.pebble import Layer
-from ops.main import main
-from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, WaitingStatus
-from serialized_data_interface import (
-    NoCompatibleVersions,
-    NoVersionsListed,
-    get_interfaces,
-)
+from charmed_kubeflow_chisme.kubernetes import KubernetesResourceHandler as KRH  # noqa: N817
+from charmed_kubeflow_chisme.pebble import update_layer
 from charms.observability_libs.v1.kubernetes_service_patch import KubernetesServicePatch
-from lightkube.models.core_v1 import ServicePort
 from lightkube import ApiError
 from lightkube.generic_resource import load_in_cluster_generic_resources
-from charmed_kubeflow_chisme.pebble import update_layer
-from charmed_kubeflow_chisme.kubernetes import KubernetesResourceHandler as KRH
+from lightkube.models.core_v1 import ServicePort
+from ops.charm import CharmBase, RelationJoinedEvent
+from ops.main import main
+from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, WaitingStatus
+from ops.pebble import Layer
+from serialized_data_interface import NoCompatibleVersions, NoVersionsListed, get_interfaces
 
 K8S_RESOURCE_FILES = ["src/templates/auth_manifests.yaml.j2"]
 
@@ -60,9 +56,7 @@ class KatibUIOperator(CharmBase):
             self.on.katib_ui_pebble_ready,
         ]:
             self.framework.observe(event, self.main)
-        self.framework.observe(
-            self.on.sidebar_relation_joined, self._on_sidebar_relation_joined
-        )
+        self.framework.observe(self.on.sidebar_relation_joined, self._on_sidebar_relation_joined)
         self.framework.observe(
             self.on.sidebar_relation_departed, self._on_sidebar_relation_departed
         )
@@ -178,9 +172,7 @@ class KatibUIOperator(CharmBase):
             interfaces = self._get_interfaces()
             self._handle_ingress(interfaces)
             self._deploy_k8s_resources()
-            update_layer(
-                self._container_name, self.container, self._katib_ui_layer, self.logger
-            )
+            update_layer(self._container_name, self.container, self._katib_ui_layer, self.logger)
         except CheckFailed as e:
             self.model.unit.status = e.status
             return

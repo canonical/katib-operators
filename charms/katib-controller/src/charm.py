@@ -8,14 +8,14 @@ from pathlib import Path
 from subprocess import check_call
 
 import yaml
+from charms.grafana_k8s.v0.grafana_dashboard import GrafanaDashboardProvider
+from charms.prometheus_k8s.v0.prometheus_scrape import MetricsEndpointProvider
 from jinja2 import Environment, FileSystemLoader
 from oci_image import OCIImageResource, OCIImageResourceError
 from ops.charm import CharmBase
 from ops.framework import StoredState
 from ops.main import main
 from ops.model import ActiveStatus, MaintenanceStatus, WaitingStatus
-from charms.prometheus_k8s.v0.prometheus_scrape import MetricsEndpointProvider
-from charms.grafana_k8s.v0.grafana_dashboard import GrafanaDashboardProvider
 
 logger = logging.getLogger(__name__)
 
@@ -49,9 +49,7 @@ class Operator(CharmBase):
             jobs=[
                 {
                     "job_name": "katib_controller_metrics",
-                    "static_configs": [
-                        {"targets": [f"*:{self.config['metrics-port']}"]}
-                    ],
+                    "static_configs": [{"targets": [f"*:{self.config['metrics-port']}"]}],
                 }
             ],
         )
