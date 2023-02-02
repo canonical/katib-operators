@@ -1,4 +1,4 @@
-apiVersion: "kubeflow.org/v1"
+apiVersion: kubeflow.org/v1
 kind: PyTorchJob
 spec:
   pytorchReplicaSpecs:
@@ -9,8 +9,7 @@ spec:
         spec:
           containers:
             - name: pytorch
-              image: docker.io/kubeflowkatib/pytorch-mnist:latest
-              imagePullPolicy: Always
+              image: docker.io/kubeflowkatib/pytorch-mnist-cpu:v0.15.0-rc.0
               command:
                 - "python3"
                 - "/opt/pytorch-mnist/mnist.py"
@@ -24,8 +23,7 @@ spec:
         spec:
           containers:
             - name: pytorch
-              image: docker.io/kubeflowkatib/pytorch-mnist:latest
-              imagePullPolicy: Always
+              image: docker.io/kubeflowkatib/pytorch-mnist-cpu:v0.15.0-rc.0
               command:
                 - "python3"
                 - "/opt/pytorch-mnist/mnist.py"

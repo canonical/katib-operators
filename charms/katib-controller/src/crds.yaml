@@ -5,35 +5,35 @@ metadata:
   name: experiments.kubeflow.org
 spec:
   group: kubeflow.org
+  names:
+    categories:
+    - all
+    - kubeflow
+    - katib
+    kind: Experiment
+    plural: experiments
+    singular: experiment
   scope: Namespaced
   versions:
-    - name: v1beta1
-      served: true
-      storage: true
-      additionalPrinterColumns:
-        - name: Type
-          type: string
-          jsonPath: .status.conditions[-1:].type
-        - name: Status
-          type: string
-          jsonPath: .status.conditions[-1:].status
-        - name: Age
-          type: date
-          jsonPath: .metadata.creationTimestamp
-      subresources:
-        status: {}
-      schema:
-        openAPIV3Schema:
-          type: object
-          x-kubernetes-preserve-unknown-fields: true
-  names:
-    kind: Experiment
-    singular: experiment
-    plural: experiments
-    categories:
-      - all
-      - kubeflow
-      - katib
+  - additionalPrinterColumns:
+    - jsonPath: .status.conditions[-1:].type
+      name: Type
+      type: string
+    - jsonPath: .status.conditions[-1:].status
+      name: Status
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1beta1
+    schema:
+      openAPIV3Schema:
+        type: object
+        x-kubernetes-preserve-unknown-fields: true
+    served: true
+    storage: true
+    subresources:
+      status: {}
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
@@ -41,35 +41,35 @@ metadata:
   name: trials.kubeflow.org
 spec:
   group: kubeflow.org
+  names:
+    categories:
+    - all
+    - kubeflow
+    - katib
+    kind: Trial
+    plural: trials
+    singular: trial
   scope: Namespaced
   versions:
-    - name: v1beta1
-      served: true
-      storage: true
-      additionalPrinterColumns:
-        - name: Type
-          type: string
-          jsonPath: .status.conditions[-1:].type
-        - name: Status
-          type: string
-          jsonPath: .status.conditions[-1:].status
-        - name: Age
-          type: date
-          jsonPath: .metadata.creationTimestamp
-      subresources:
-        status: {}
-      schema:
-        openAPIV3Schema:
-          type: object
-          x-kubernetes-preserve-unknown-fields: true
-  names:
-    kind: Trial
-    singular: trial
-    plural: trials
-    categories:
-      - all
-      - kubeflow
-      - katib
+  - additionalPrinterColumns:
+    - jsonPath: .status.conditions[-1:].type
+      name: Type
+      type: string
+    - jsonPath: .status.conditions[-1:].status
+      name: Status
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1beta1
+    schema:
+      openAPIV3Schema:
+        type: object
+        x-kubernetes-preserve-unknown-fields: true
+    served: true
+    storage: true
+    subresources:
+      status: {}
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
@@ -77,38 +77,38 @@ metadata:
   name: suggestions.kubeflow.org
 spec:
   group: kubeflow.org
+  names:
+    categories:
+    - all
+    - kubeflow
+    - katib
+    kind: Suggestion
+    plural: suggestions
+    singular: suggestion
   scope: Namespaced
   versions:
-    - name: v1beta1
-      served: true
-      storage: true
-      additionalPrinterColumns:
-        - name: Type
-          type: string
-          jsonPath: .status.conditions[-1:].type
-        - name: Status
-          type: string
-          jsonPath: .status.conditions[-1:].status
-        - name: Requested
-          type: string
-          jsonPath: .spec.requests
-        - name: Assigned
-          type: string
-          jsonPath: .status.suggestionCount
-        - name: Age
-          type: date
-          jsonPath: .metadata.creationTimestamp
-      subresources:
-        status: {}
-      schema:
-        openAPIV3Schema:
-          type: object
-          x-kubernetes-preserve-unknown-fields: true
-  names:
-    kind: Suggestion
-    singular: suggestion
-    plural: suggestions
-    categories:
-      - all
-      - kubeflow
-      - katib
+  - additionalPrinterColumns:
+    - jsonPath: .status.conditions[-1:].type
+      name: Type
+      type: string
+    - jsonPath: .status.conditions[-1:].status
+      name: Status
+      type: string
+    - jsonPath: .spec.requests
+      name: Requested
+      type: string
+    - jsonPath: .status.suggestionCount
+      name: Assigned
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1beta1
+    schema:
+      openAPIV3Schema:
+        type: object
+        x-kubernetes-preserve-unknown-fields: true
+    served: true
+    storage: true
+    subresources:
+      status: {}
