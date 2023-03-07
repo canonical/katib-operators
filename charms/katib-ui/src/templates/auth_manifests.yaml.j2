@@ -18,6 +18,24 @@ rules:
       - suggestions
     verbs:
       - "*"
+  - apiGroups:
+    - ""
+    resources:
+    - pods
+    verbs:
+    - list
+  - apiGroups:
+    - ""
+    resources:
+    - pods/log
+    verbs:
+    - get
+  - apiGroups:
+    - authorization.k8s.io
+    resources:
+    - subjectaccessreviews
+    verbs:
+    - create
 ---
 apiVersion: v1
 kind: ServiceAccount

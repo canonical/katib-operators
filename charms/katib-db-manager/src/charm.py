@@ -81,9 +81,7 @@ class Operator(CharmBase):
                         "name": "katib-db-manager",
                         "command": ["./katib-db-manager"],
                         "imageDetails": image_details,
-                        "ports": [
-                            {"name": "api", "containerPort": self.model.config["port"]}
-                        ],
+                        "ports": [{"name": "api", "containerPort": self.model.config["port"]}],
                         "envConfig": {
                             "DB_NAME": "mysql",
                             "DB_USER": "root",
