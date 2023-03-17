@@ -13,9 +13,9 @@ jobs:
     strategy:
       matrix:
         charm:
-          - katib-controller
-          - katib-db-manager
-          - katib-ui
+        - katib-controller
+        - katib-db-manager
+        - katib-ui
     uses: canonical/charmed-kubeflow-workflows/.github/workflows/_quality-checks.yaml@main
     secrets: inherit
     with:
