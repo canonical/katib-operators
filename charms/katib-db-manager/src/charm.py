@@ -4,20 +4,18 @@
 
 import logging
 
+from charmed_kubeflow_chisme.exceptions import ErrorWithStatus, GenericCharmRuntimeError
+from charmed_kubeflow_chisme.kubernetes import KubernetesResourceHandler
+from charmed_kubeflow_chisme.lightkube.batch import delete_many
+from charmed_kubeflow_chisme.pebble import update_layer
+from charms.observability_libs.v1.kubernetes_service_patch import KubernetesServicePatch
+from lightkube import ApiError
+from lightkube.generic_resource import load_in_cluster_generic_resources
+from lightkube.models.core_v1 import ServicePort
 from ops.charm import CharmBase
 from ops.main import main
 from ops.model import ActiveStatus, MaintenanceStatus, WaitingStatus
 from ops.pebble import Layer
-from lightkube.models.core_v1 import ServicePort
-from charms.observability_libs.v1.kubernetes_service_patch import KubernetesServicePatch
-from charms.observability_libs.v1.kubernetes_service_patch import KubernetesServicePatch
-from lightkube.generic_resource import load_in_cluster_generic_resources
-from charmed_kubeflow_chisme.kubernetes import KubernetesResourceHandler
-from lightkube import ApiError
-from charmed_kubeflow_chisme.exceptions import ErrorWithStatus, GenericCharmRuntimeError
-from charmed_kubeflow_chisme.lightkube.batch import delete_many
-from charmed_kubeflow_chisme.pebble import update_layer
-
 
 K8S_RESOURCE_FILES = [
     "src/templates/auth_manifests.yaml.j2",
