@@ -7,7 +7,8 @@ description: |
   hyperparameters of applications written in any language of the users’ choice and natively
   supports many ML frameworks, such as TensorFlow, MXNet, PyTorch, XGBoost, and others.
 website: https://charmhub.io/katib-db-manager
-source: https://github.com/canonical/katib-operators/tree/main/charms/katib-db-manager
+source: https://github.com/canonical/katib-operators
+issues: https://github.com/canonical/katib-operators/issues
 containers:
   katib-db-manager:
     resource: oci-image
