@@ -23,6 +23,7 @@ K8S_RESOURCE_FILES = [
     "src/templates/auth_manifests.yaml.j2",
 ]
 
+
 class CheckFailed(Exception):
     """Raise this exception if one of the checks in main fails."""
 
@@ -34,7 +35,7 @@ class CheckFailed(Exception):
         self.status = status_type(self.msg)
 
 
-class Operator(CharmBase):
+class KatibDBManagerOperator(CharmBase):
     """Deploys the katib-db-manager service."""
 
     def __init__(self, framework):
@@ -42,15 +43,15 @@ class Operator(CharmBase):
 
         # retrieve configuration and base settings
         self.logger = logging.getLogger(__name__)
-        self._container_name="katib-db-manager"
-        self._container=self.unit.get_container(self._container_name)
-        self._exec_command="./katib-db-manager"
+        self._container_name = "katib-db-manager"
+        self._container = self.unit.get_container(self._container_name)
+        self._exec_command = "./katib-db-manager"
         self._port = self.model.config["port"]
         self._lightkube_field_manager = "lightkube"
         self._namespace = self.model.name
         self._name = self.model.app.name
         self._k8s_resource_handler = None
-        self._mysql_data=None
+        self._mysql_data = None
 
         # setup events to be handled by main event handler
         self.framework.observe(self.on["mysql"].relation_joined, self._on_event)
@@ -61,8 +62,6 @@ class Operator(CharmBase):
         # setup events to be handled by specific event handlers
         self.framework.observe(self.on.install, self._on_install)
         self.framework.observe(self.on.remove, self._on_remove)
-        #self.framework.observe(self.on.upgrade_charm, self._on_upgrade)
-        #self.framework.observe(self.on.update_status, self._on_update_status)
 
         port = ServicePort(int(self._port), name="api")
         self.service_patcher = KubernetesServicePatch(
@@ -112,71 +111,34 @@ class Operator(CharmBase):
         }
 
         return ret_env_vars
-    
-    # def set_pod_spec(self, event):
-    #     try:
-    #         self._check_leader()
-
-    #         image_details = self._check_image_details()
-
-    #         mysql_data = self._check_mysql()
-    #     except CheckFailed as check_failed:
-    #         self.model.unit.status = check_failed.status
-    #         return
-
-    #     self.model.unit.status = MaintenanceStatus("Setting pod spec")
-
-    #     self.model.pod.set_spec(
-    #             "version": 3,
-    #             "containers": [
-    #                 {
-    #                     "name": "katib-db-manager",
-    #                     "command": ["./katib-db-manager"],
-    #                     "imageDetails": image_details,
-    #                     "ports": [{"name": "api", "containerPort": self.model.config["port"]}],
-    #                     "envConfig": {
-    #                         "DB_NAME": "mysql",
-    #                         "DB_USER": "root",
-    #                         "DB_PASSWORD": mysql_data["root_password"],
-    #                         "KATIB_MYSQL_DB_HOST": mysql_data["host"],
-    #                         "KATIB_MYSQL_DB_PORT": mysql_data["port"],
-    #                         "KATIB_MYSQL_DB_DATABASE": mysql_data["database"],
-    #                     },
-    #                     "kubernetes": {
-    #                         "livenessProbe": {
-    #                             "exec": {
-    #                                 "command": [
-    #                                     "/bin/grpc_health_probe",
-    #                                     f"-addr=:{self.model.config['port']}",
-    #                                 ]
-    #                             },
-    #                             "initialDelaySeconds": 10,
-    #                             "periodSeconds": 60,
-    #                             "failureThreshold": 5,
-    #                         }
-    #                     },
-    #                 }
-    #             ],
-    #     )
-
-    #     self.model.unit.status = ActiveStatus()
 
     @property
     def _katib_db_manager_layer(self) -> Layer:
         """Create and return Pebble framework layer."""
-        layer_config={
+        layer_config = {
             "summary": "katib-db-manager layer",
             "description": "Pebble config layer for katib-db-manager operator",
-            "services":
-            {
-            self._container_name: {
-            "override": "replace",
-            "summary": "Pebble service for katib-db-manager operator",
-            "startup": "enabled",
-            "command": self._exec_command,
-            "environment": self.service_environment,
-            }
-            }
+            "services": {
+                self._container_name: {
+                    "override": "replace",
+                    "summary": "Pebble service for katib-db-manager operator",
+                    "startup": "enabled",
+                    "command": self._exec_command,
+                    "environment": self.service_environment,
+                    "on-check-failure": {"katib-db-manager-up": "restart"},
+                },
+            },
+            "checks": {
+                "katib-db-manager-up": {
+                    "override": "replace",
+                    "period": "60s",
+                    "timeout": "20s",
+                    "threshold": 5,
+                    "exec": {
+                        "command": f"/bin/grpc_health_probe -addr=:{self._port}",
+                    },
+                }
+            },
         }
         return Layer(layer_config)
 
@@ -197,7 +159,7 @@ class Operator(CharmBase):
             raise ErrorWithStatus("Waiting for mysql connection information", WaitingStatus)
 
         return mysql_data
-    
+
     def _check_and_report_k8s_conflict(self, error):
         """Return True if error status code is 409 (conflict), False otherwise."""
         if error.status.code == 409:
@@ -271,5 +233,6 @@ class Operator(CharmBase):
 
         self.model.unit.status = ActiveStatus()
 
+
 if __name__ == "__main__":
-    main(Operator)
+    main(KatibDBManagerOperator)
