@@ -53,7 +53,6 @@ def test_no_relation(
     harness, mocked_resource_handler, mocked_lightkube_client, mocked_kubernetes_service_patcher
 ):
     """Test no relation scenario."""
-    harness.set_leader(True)
     harness.add_oci_resource(
         "oci-image",
         {
@@ -123,6 +122,7 @@ def test_pebble_layer(
     pebble_plan_info = pebble_plan.to_dict()
     assert pebble_plan_info["services"]["katib-db-manager"]["command"] == "./katib-db-manager"
     test_env = pebble_plan_info["services"]["katib-db-manager"]["environment"]
+    # there should be size (6) environment variables
     assert 6 == len(test_env)
 
 
