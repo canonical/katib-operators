@@ -57,8 +57,6 @@ requires:
     versions: [v1]
     __schema_source: https://raw.githubusercontent.com/canonical/operator-schemas/master/ingress.yaml
 provides:
-  katib-ui:
-    interface: http
   sidebar:
     interface: sidebar
     optional: true
