@@ -1,8 +1,9 @@
 from contextlib import nullcontext as does_not_raise
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
-from ops.model import MaintenanceStatus, WaitingStatus
+from ops.model import ActiveStatus, MaintenanceStatus, WaitingStatus
+from ops.pebble import CheckStatus
 from ops.testing import Harness
 
 from charm import KatibDBManagerOperator
@@ -134,3 +135,35 @@ def test_apply_k8s_resources_success(
     harness.charm._apply_k8s_resources()
     mocked_resource_handler.apply.assert_called()
     assert isinstance(harness.charm.model.unit.status, MaintenanceStatus)
+
+
+@patch("charm.KatibDBManagerOperator._get_check_status")
+@pytest.mark.parametrize(
+    "health_check_status, charm_status",
+    [
+        (CheckStatus.UP, ActiveStatus("")),
+        (CheckStatus.DOWN, MaintenanceStatus("Workload failed health check")),
+    ],
+)
+def test_update_status(
+    _get_check_status: MagicMock,
+    health_check_status,
+    charm_status,
+    harness,
+    mocked_resource_handler,
+    mocked_lightkube_client,
+    mocked_kubernetes_service_patcher,
+):
+    """
+    Test update status handler.
+    Check on the correct charm status when health check status is UP/DOWN.
+    """
+    harness.set_leader(True)
+    harness.begin_with_initial_hooks()
+    harness.container_pebble_ready("katib-db-manager")
+
+    _get_check_status.return_value = health_check_status
+
+    # test successful update status
+    harness.charm.on.update_status.emit()
+    assert harness.charm.model.unit.status == charm_status

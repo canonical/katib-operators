@@ -14,8 +14,8 @@ from lightkube.generic_resource import load_in_cluster_generic_resources
 from lightkube.models.core_v1 import ServicePort
 from ops.charm import CharmBase
 from ops.main import main
-from ops.model import ActiveStatus, MaintenanceStatus, WaitingStatus
-from ops.pebble import Layer
+from ops.model import ActiveStatus, MaintenanceStatus, ModelError, WaitingStatus
+from ops.pebble import CheckStatus, Layer
 
 K8S_RESOURCE_FILES = [
     "src/templates/auth_manifests.yaml.j2",
@@ -49,6 +49,7 @@ class KatibDBManagerOperator(CharmBase):
         # setup events to be handled by specific event handlers
         self.framework.observe(self.on.install, self._on_install)
         self.framework.observe(self.on.remove, self._on_remove)
+        self.framework.observe(self.on.update_status, self._on_update_status)
 
         port = ServicePort(int(self._port), name="api")
         self.service_patcher = KubernetesServicePatch(
@@ -176,6 +177,33 @@ class KatibDBManagerOperator(CharmBase):
             else:
                 raise GenericCharmRuntimeError("K8S resources creation failed") from error
         self.model.unit.status = MaintenanceStatus("K8S resources created")
+
+    def _get_check_status(self):
+        return self.container.get_check("katib-db-manager-up").status
+
+    def _refresh_status(self):
+        """Check leader, refresh status of workload, and set status accordingly."""
+        self._check_leader()
+        try:
+            check = self._get_check_status()
+        except ModelError as error:
+            raise GenericCharmRuntimeError(
+                "Failed to run health check on workload container"
+            ) from error
+        if check != CheckStatus.UP:
+            self.logger.error(
+                f"Container {self._container_name} failed health check. It will be restarted."
+            )
+            raise ErrorWithStatus("Workload failed health check", MaintenanceStatus)
+        else:
+            self.model.unit.status = ActiveStatus()
+
+    def _on_update_status(self, event):
+        """Update status actions."""
+        try:
+            self._refresh_status()
+        except ErrorWithStatus as err:
+            self.model.unit.status = err.status
 
     def _on_install(self, _):
         """Installation only tasks."""
