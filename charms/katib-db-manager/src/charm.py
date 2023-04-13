@@ -22,17 +22,6 @@ K8S_RESOURCE_FILES = [
 ]
 
 
-class CheckFailed(Exception):
-    """Raise this exception if one of the checks in main fails."""
-
-    def __init__(self, msg, status_type=None):
-        super().__init__()
-
-        self.msg = str(msg)
-        self.status_type = status_type
-        self.status = status_type(self.msg)
-
-
 class KatibDBManagerOperator(CharmBase):
     """Deploys the katib-db-manager service."""
 
