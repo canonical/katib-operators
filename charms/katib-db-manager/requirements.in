@@ -1,2 +1,5 @@
 ops
 oci-image
+charmed-kubeflow-chisme
+lightkube
+lightkube-models

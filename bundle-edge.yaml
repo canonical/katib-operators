@@ -13,11 +13,13 @@ applications:
   katib-db-manager:
     charm: katib-db-manager
     scale: 1
+    trust: true
     resources:
       oci-image: docker.io/kubeflowkatib/katib-db-manager:latest
   katib-ui:
     charm: katib-ui
     scale: 1
+    trust: true
     resources:
       oci-image: docker.io/kubeflowkatib/katib-ui:latest
 relations:
