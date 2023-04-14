@@ -17,6 +17,3 @@ resources:
 requires:
   mysql:
     interface: mysql
-provides:
-  katib-db-manager:
-    interface: http
