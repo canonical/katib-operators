@@ -15,8 +15,6 @@ resources:
     auto-fetch: true
     upstream-source: docker.io/kubeflowkatib/katib-controller:v0.15.0
 provides:
-  katib-controller:
-    interface: http
   metrics-endpoint:
     interface: prometheus_scrape
   grafana-dashboard:

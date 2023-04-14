@@ -22,6 +22,3 @@ requires:
   mysql:
     interface: mysql
     limit: 1
-provides:
-  katib-db-manager:
-    interface: http
