@@ -8,13 +8,14 @@ from charmed_kubeflow_chisme.exceptions import ErrorWithStatus, GenericCharmRunt
 from charmed_kubeflow_chisme.kubernetes import KubernetesResourceHandler
 from charmed_kubeflow_chisme.lightkube.batch import delete_many
 from charmed_kubeflow_chisme.pebble import update_layer
+from charms.data_platform_libs.v0.data_interfaces import DatabaseCreatedEvent, DatabaseRequires
 from charms.observability_libs.v1.kubernetes_service_patch import KubernetesServicePatch
 from lightkube import ApiError
 from lightkube.generic_resource import load_in_cluster_generic_resources
 from lightkube.models.core_v1 import ServicePort
 from ops.charm import CharmBase
 from ops.main import main
-from ops.model import ActiveStatus, MaintenanceStatus, ModelError, WaitingStatus
+from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, ModelError, WaitingStatus
 from ops.pebble import CheckStatus, Layer
 
 K8S_RESOURCE_FILES = [
@@ -31,6 +32,7 @@ class KatibDBManagerOperator(CharmBase):
         # retrieve configuration and base settings
         self.logger = logging.getLogger(__name__)
         self._container_name = "katib-db-manager"
+        self._database_name = "mysql"
         self._container = self.unit.get_container(self._container_name)
         self._exec_command = "./katib-db-manager"
         self._port = self.model.config["port"]
@@ -38,11 +40,21 @@ class KatibDBManagerOperator(CharmBase):
         self._namespace = self.model.name
         self._name = self.model.app.name
         self._k8s_resource_handler = None
-        self._mysql_data = None
+        self._db_data = None
 
         # setup events to be handled by main event handler
-        self.framework.observe(self.on["mysql"].relation_joined, self._on_event)
-        self.framework.observe(self.on["mysql"].relation_changed, self._on_event)
+        self.framework.observe(self.on["mysql"].relation_joined, self._on_mysql_relation)
+        self.framework.observe(self.on["mysql"].relation_changed, self._on_mysql_relation)
+        self.framework.observe(self.on["mysql"].relation_departed, self._on_mysql_relation_removed)
+        self.framework.observe(
+            self.on["relational-db"].relation_joined, self._on_relational_db_relation
+        )
+        self.framework.observe(
+            self.on["relational-db"].relation_changed, self._on_relational_db_relation
+        )
+        self.framework.observe(
+            self.on["relational-db"].relation_departed, self._on_relational_db_relation
+        )
         self.framework.observe(self.on.katib_db_manager_pebble_ready, self._on_event)
         self.framework.observe(self.on.config_changed, self._on_event)
 
@@ -56,6 +68,16 @@ class KatibDBManagerOperator(CharmBase):
             self,
             [port],
             service_name=f"{self.model.app.name}",
+        )
+
+        # setup relational database interface and observers
+        self.database = DatabaseRequires(
+            self, relation_name="relational-db", database_name=self._database_name
+        )
+        self.framework.observe(self.database.on.database_created, self._on_relational_db_relation)
+        self.framework.observe(self.database.on.endpoints_changed, self._on_relational_db_relation)
+        self.framework.observe(
+            self.on.relational_db_relation_broken, self._on_relational_db_relation_removed
         )
 
     @property
@@ -90,12 +112,12 @@ class KatibDBManagerOperator(CharmBase):
     def service_environment(self):
         """Return environment variables based on model configuration."""
         ret_env_vars = {
-            "DB_NAME": "mysql",
-            "DB_USER": "root",
-            "DB_PASSWORD": self._mysql_data["root_password"],
-            "KATIB_MYSQL_DB_HOST": self._mysql_data["host"],
-            "KATIB_MYSQL_DB_PORT": self._mysql_data["port"],
-            "KATIB_MYSQL_DB_DATABASE": self._mysql_data["database"],
+            "DB_NAME": self._db_data["db_name"],
+            "DB_USER": self._db_data["db_username"],
+            "DB_PASSWORD": self._db_data["db_password"],
+            "KATIB_MYSQL_DB_HOST": self._db_data["katib_db_host"],
+            "KATIB_MYSQL_DB_PORT": self._db_data["katib_db_port"],
+            "KATIB_MYSQL_DB_DATABASE": self._db_data["katib_db_name"],
         }
 
         return ret_env_vars
@@ -136,17 +158,132 @@ class KatibDBManagerOperator(CharmBase):
             self.logger.info("Not a leader, skipping setup")
             raise ErrorWithStatus("Waiting for leadership", WaitingStatus)
 
-    def _check_mysql(self):
+    def _on_mysql_relation(self, event):
+        """Check for existing database relations and process mysql relation if needed."""
+        # check for relational-db relation
+        # relying on KeyError to ensure that relational-db relation is not present
         try:
-            relation = self.model.relations["mysql"][0]
-            unit = next(iter(relation.units))
-            mysql_data = relation.data[unit]
-            # Ensure we've got some data sent over the relation
-            mysql_data["root_password"]
-        except (IndexError, StopIteration, KeyError):
-            raise ErrorWithStatus("Waiting for mysql connection information", WaitingStatus)
+            relation = self.model.get_relation("relational-db")
+            if relation:
+                self.logger.warnning(
+                    "Failed to create mysql relation due to existing relational-db relation."
+                )
+                return
+        except KeyError:
+            # relational-db relation was not found, proceed
+            pass
+        self._on_event(event)
 
-        return mysql_data
+    def _on_mysql_relation_removed(self, event):
+        """Remove mysql relation data."""
+        pass
+
+    def _on_relational_db_relation(self, event):
+        """Check for existing database relations and process relational-db relation if needed."""
+        # check for mysql relation
+        # relying on KeyError to ensure that mysql relation is not present
+        assert 0
+        try:
+            relation = self.model.get_relation("mysql")
+            if relation:
+                self.logger.warninig(
+                    "Failed to create relational-db relation due to existing mysql relation"
+                )
+                return
+        except KeyError:
+            # mysql relation was not found, proceed
+            pass
+        self._on_event(event)
+
+    def _on_relational_db_relation_removed(self, event):
+        """Remove relational-db relation data."""
+        pass
+
+    def _get_db_data(self) -> dict:
+        """Check for MySQL relations -  mysql or relational-db - and retrieve data.
+        
+        Only one database relation can be established at a time.
+        """
+        db_data = {}
+        relation_data = {}
+        try:
+            # retrieve mysql relation data
+            relation = self.model.get_relation("mysql")
+            if not relation:
+                # myslq relation is not established
+                # raise an error and proceed to check for relational-db relation
+                # this error is processed below
+                raise GenericCharmRuntimeError("Database relation mysql is not established")
+            unit = next(iter(relation.units))
+            relation_data = relation.data[unit]
+            # retrieve database data from relation data
+            # this also validates the expected data by means of KeyError exception
+            db_data["db_name"] = self._database_name
+            db_data["db_username"] = relation_data["user"] # need to verify
+            db_data["db_password"] = relation_data["root_password"]
+            db_data["katib_db_host"] = relation_data["host"]
+            db_data["katib_db_port"] = relation_data["port"]
+            db_data["katib_db_name"] = relation_data["database"]
+        except (IndexError, StopIteration, KeyError) as err:
+            # mysql relation is established
+            # failed to retrieve database configuration
+            if len(relation_data) == 0:
+                self.logger.info("Found empty relation data for mysql relation.")
+                raise ErrorWithStatus("Waiting for mysql data", WaitingStatus)
+            self.logger.error(
+                f"Missing attribute {err} in mysql relation data: {relation_data}"
+            )
+            # incorrect/incomplete data can be found in mysql relation which can be resolved:
+            # use WaitingStatus
+            raise ErrorWithStatus(
+                f"Incorrect/incomplete data found in relation mysql. See logs", WaitingStatus
+            )
+        except GenericCharmRuntimeError:
+            # at this point it is detected that mysql relation is not established
+            # check for relational-db relation
+            try:
+                # retrieve relational_db relation data
+                relation = self.model.get_relation("relational-db")
+            except KeyError:
+                # relational-db was not found
+                relation = None
+            if not relation:
+                # relational-db and mysql relations are not established
+                # this error is process below
+                raise ErrorWithStatus(
+                    "Please add required database relation", BlockedStatus
+                )
+            # retrieve database data from library
+            relation_data = self.database.fetch_relation_data()
+            # parse data in relation
+            # this also validates expected data by means of KeyError exception
+            for val in relation_data.values():
+                if not val:
+                    continue
+                try:
+                    db_data["db_name"] = self._database_name
+                    db_data["db_username"] = val["username"]
+                    db_data["db_password"] = val["password"]
+                    host, port = val["endpoints"].split(":")
+                    db_data["katib_db_host"] = host
+                    db_data["katib_db_port"] = port
+                    db_data["katib_db_name"] = "database"
+                except KeyError as err:
+                    self.logger.error(
+                        f"Missing attribute {err} in relational-db relation data: {val}"
+                    )
+                    # incorrect/incomplete data can be found in mysql relation which can be
+                    # resolved: use WaitingStatus
+                    raise ErrorWithStatus(
+                        f"Incorrect/incomplete data found in relation relational-db. See logs",
+                        WaitingStatus,
+                    )
+            # report if there was no data populated
+            if len(db_data) == 0:
+                self.logger.info("Found empty relation data for relational-db relation.")
+                raise ErrorWithStatus("Waiting for relational-db data", WaitingStatus)
+
+        return db_data
 
     def _check_and_report_k8s_conflict(self, error):
         """Return True if error status code is 409 (conflict), False otherwise."""
@@ -234,7 +371,7 @@ class KatibDBManagerOperator(CharmBase):
         try:
             self._check_leader()
             self._apply_k8s_resources(force_conflicts=force_conflicts)
-            self._mysql_data = self._check_mysql()
+            self._db_data = self._get_db_data()
             update_layer(
                 self._container_name,
                 self._container,
