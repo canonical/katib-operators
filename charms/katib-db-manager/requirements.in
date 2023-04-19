@@ -1,5 +1,5 @@
-ops
+ops==2.2.0
 oci-image
 charmed-kubeflow-chisme
 lightkube
-lightkube-models
+lightkube-models==1.25.4.4
