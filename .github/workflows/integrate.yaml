@@ -55,6 +55,7 @@ jobs:
           provider: microk8s
           channel: 1.24/stable
           juju-channel: 2.9/stable
+          bootstrap-options: "--agent-version=2.9.42"
           microk8s-addons: "dns storage rbac metallb:10.64.140.43-10.64.140.49"
 
       # TODO: Remove once the actions-operator does this automatically
@@ -64,11 +65,8 @@ jobs:
       - name: Run test
         run: |
           # Requires the model to be called kubeflow due to kfp-viewer
-          juju add-model kubeflow
-          # Remove destructive-mode once these bugs are fixed:
-          # https://github.com/canonical/charmcraft/issues/554
-          # https://github.com/canonical/craft-providers/issues/96
-          tox -e bundle-integration -- --model kubeflow --destructive-mode
+          juju add-model kubeflow --config default-series=focal
+          tox -e bundle-integration -- --model kubeflow
 
       - name: Get pod statuses
         run: kubectl get all -A
