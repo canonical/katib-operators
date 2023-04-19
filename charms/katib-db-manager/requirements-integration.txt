@@ -110,7 +110,7 @@ oauthlib==3.2.2
     # via requests-oauthlib
 oci-image==1.0.0
     # via -r ./requirements.txt
-ops==1.5.4
+ops==2.2.0
     # via
     #   -r ./requirements.txt
     #   charmed-kubeflow-chisme
@@ -245,7 +245,10 @@ urllib3==1.26.15
 wcwidth==0.2.6
     # via prompt-toolkit
 websocket-client==1.5.1
-    # via kubernetes
+    # via
+    #   -r ./requirements.txt
+    #   kubernetes
+    #   ops
 websockets==7.0
     # via juju
 
