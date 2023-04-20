@@ -115,7 +115,7 @@ class KatibDBManagerOperator(CharmBase):
     def service_environment(self):
         """Return environment variables based on model configuration."""
         ret_env_vars = {
-            "DB_NAME": self._db_data["db_name"],
+            "DB_NAME": self._db_data["db_type"],
             "DB_USER": self._db_data["db_username"],
             "DB_PASSWORD": self._db_data["db_password"],
             "KATIB_MYSQL_DB_HOST": self._db_data["katib_db_host"],
@@ -240,7 +240,7 @@ class KatibDBManagerOperator(CharmBase):
             relation_data = relation.data[unit]
             # retrieve database data from relation data
             # this also validates the expected data by means of KeyError exception
-            db_data["db_name"] = "mysql"
+            db_data["db_type"] = "mysql"
             db_data["db_username"] = relation_data["user"]
             db_data["db_password"] = relation_data["root_password"]
             db_data["katib_db_host"] = relation_data["host"]
@@ -277,7 +277,7 @@ class KatibDBManagerOperator(CharmBase):
             if not val:
                 continue
             try:
-                db_data["db_name"] = "mysql"
+                db_data["db_type"] = "mysql"
                 db_data["db_username"] = val["username"]
                 db_data["db_password"] = val["password"]
                 host, port = val["endpoints"].split(":")
