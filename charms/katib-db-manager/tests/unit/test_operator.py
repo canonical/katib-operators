@@ -66,7 +66,7 @@ def test_no_relation(
     harness.begin_with_initial_hooks()
     harness.container_pebble_ready("katib-db-manager")
     assert harness.charm.model.unit.status == BlockedStatus(
-        "Please add required database relation"
+        "Please add required database relation: eg. relational-db"
     )
 
 
@@ -88,6 +88,7 @@ def test_mysql_relation(
         "host": "host",
         "root_password": "root_password",
         "port": "port",
+        "user": "user1",
     }
     harness.update_relation_data(rel_id, mysql_unit, data)
     with does_not_raise():
@@ -115,6 +116,7 @@ def test_pebble_layer(
         "host": "host",
         "root_password": "root_password",
         "port": "port",
+        "user": "user1",
     }
     harness.update_relation_data(rel_id, mysql_unit, data)
     harness.container_pebble_ready("katib-db-manager")
@@ -190,16 +192,15 @@ def test_relational_db_relation_no_data(
     )
     harness.begin()
     harness.charm.database = database
-    try:
+    with pytest.raises(ErrorWithStatus) as err:
         harness.charm._get_db_data()
-        assert 0 # expected error, but returned data
-    except ErrorWithStatus as err:
-        assert err.status == WaitingStatus("Waiting for relational-db data")
+    assert err.value.status_type(WaitingStatus)
+    assert "Waiting for relational-db data" in str(err)
 
 def test_relational_db_relation_missing_attributes(
     harness, mocked_resource_handler, mocked_lightkube_client, mocked_kubernetes_service_patcher
 ):
-    """Test that error is raised when relational-db has missing attribures data."""
+    """Test that error is raised when relational-db has missing attributes data."""
     database = MagicMock()
     fetch_relation_data = MagicMock()
     # setup empty data for library function to return
@@ -210,13 +211,10 @@ def test_relational_db_relation_missing_attributes(
     )
     harness.begin()
     harness.charm.database = database
-    try:
+    with pytest.raises(ErrorWithStatus) as err:
         harness.charm._get_db_data()
-        assert 0 # expected error, but returned some data
-    except ErrorWithStatus as err:
-        assert err.status == BlockedStatus(
-            "Incorrect data found in relation relational-db: Missing data. See logs"
-        )
+    assert err.value.status_type(WaitingStatus)
+    assert "Incorrect/incomplete data found in relation relational-db. See logs" in str(err)
 
 def test_relational_db_relation_bad_data(
     harness, mocked_resource_handler, mocked_lightkube_client, mocked_kubernetes_service_patcher
@@ -232,13 +230,10 @@ def test_relational_db_relation_bad_data(
     )
     harness.begin()
     harness.charm.database = database
-    try:
+    with pytest.raises(ErrorWithStatus) as err:
         harness.charm._get_db_data()
-        assert 0 # expected error, but returned valid data
-    except ErrorWithStatus as err:
-        assert err.status == BlockedStatus(
-            "Incorrect data found in relation relational-db: Missing data. See logs"
-        )
+    assert err.value.status_type(WaitingStatus)
+    assert "Incorrect/incomplete data found in relation relational-db. See logs" in str(err)
 
 def test_relational_db_relation_with_data(
     harness, mocked_resource_handler, mocked_lightkube_client, mocked_kubernetes_service_patcher
