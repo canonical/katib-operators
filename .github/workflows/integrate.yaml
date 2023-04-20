@@ -50,12 +50,12 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v3
       - name: Setup operator environment
-        uses: claudiubelu/actions-operator@18ebf92ae3043bd3dd15238e5d9b662d7ba08daf
+        uses: charmed-kubernetes/actions-operator@1.1.0
         with:
           provider: microk8s
           channel: 1.24/stable
-          # Pinned until this bug is resolved: https://bugs.launchpad.net/juju/+bug/1992833
-          bootstrap-options: "--agent-version=2.9.34"
+          juju-channel: 2.9/stable
+          bootstrap-options: "--agent-version=2.9.42"
           microk8s-addons: "dns storage rbac metallb:10.64.140.43-10.64.140.49"
 
       # TODO: Remove once the actions-operator does this automatically
@@ -65,11 +65,8 @@ jobs:
       - name: Run test
         run: |
           # Requires the model to be called kubeflow due to kfp-viewer
-          juju add-model kubeflow
-          # Remove destructive-mode once these bugs are fixed:
-          # https://github.com/canonical/charmcraft/issues/554
-          # https://github.com/canonical/craft-providers/issues/96
-          tox -e bundle-integration -- --model kubeflow --destructive-mode
+          juju add-model kubeflow --config default-series=focal
+          tox -e bundle-integration -- --model kubeflow
 
       - name: Get pod statuses
         run: kubectl get all -A
