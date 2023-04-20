@@ -34,7 +34,7 @@ class KatibDBManagerOperator(CharmBase):
         # retrieve configuration and base settings
         self.logger = logging.getLogger(__name__)
         self._container_name = "katib-db-manager"
-        self._database_name = "mysql"
+        self._database_name = "katib-db"
         self._container = self.unit.get_container(self._container_name)
         self._exec_command = "./katib-db-manager"
         self._port = self.model.config["port"]
