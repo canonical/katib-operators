@@ -21,8 +21,8 @@ from ops.pebble import CheckStatus, Layer
 K8S_RESOURCE_FILES = [
     "src/templates/auth_manifests.yaml.j2",
 ]
-MYSQL_WARNING = "Warn: mysql relation is deprecated."
-UNBLOCK_MESSAGE = "Remove mysql or relational-db relation to unblock."
+MYSQL_WARNING = "Relation mysql is deprecated."
+UNBLOCK_MESSAGE = "Remove deprecated mysql relation to unblock."
 
 
 class KatibDBManagerOperator(CharmBase):
@@ -171,10 +171,8 @@ class KatibDBManagerOperator(CharmBase):
                 self.logger.warning(
                     "Up-to-date database relation relational-db is already established."
                 )
-                self.logger.warning(f"{MYSQL_WARNING} {UNBLOCK_MESSAGE}")
-                self.model.unit.status = BlockedStatus(
-                    f"{MYSQL_WARNING} {UNBLOCK_MESSAGE} See logs"
-                )
+                self.logger.error(f"{MYSQL_WARNING} {UNBLOCK_MESSAGE}")
+                self.model.unit.status = BlockedStatus(f"{UNBLOCK_MESSAGE} See logs")
                 return
         except KeyError:
             pass
@@ -197,10 +195,8 @@ class KatibDBManagerOperator(CharmBase):
                 self.logger.warning(
                     "Failed to create relational-db relation due to existing mysql relation."
                 )
-                self.logger.warning(f"{MYSQL_WARNING} {UNBLOCK_MESSAGE}")
-                self.model.unit.status = BlockedStatus(
-                    f"{MYSQL_WARNING} {UNBLOCK_MESSAGE} See logs"
-                )
+                self.logger.error(f"{MYSQL_WARNING} {UNBLOCK_MESSAGE}")
+                self.model.unit.status = BlockedStatus(f"{UNBLOCK_MESSAGE} See logs")
                 return
         except KeyError:
             pass
@@ -226,7 +222,9 @@ class KatibDBManagerOperator(CharmBase):
             relation = None
         if not relation:
             # relation is not established, raise an error
-            raise GenericCharmRuntimeError(f"Database relation {relation_name} is not established")
+            raise GenericCharmRuntimeError(
+                f"Database relation {relation_name} is not established or empty"
+            )
 
         return relation
 
@@ -250,7 +248,7 @@ class KatibDBManagerOperator(CharmBase):
             db_data["katib_db_name"] = relation_data["database"]
         except (IndexError, StopIteration, KeyError) as err:
             # failed to retrieve database configuration
-            if len(relation_data) == 0:
+            if not relation_data:
                 raise GenericCharmRuntimeError(
                     "Database relation mysql is not established or empty"
                 )
@@ -295,7 +293,7 @@ class KatibDBManagerOperator(CharmBase):
                     WaitingStatus,
                 )
         # report if there was no data populated
-        if len(db_data) == 0:
+        if not db_data:
             self.logger.info("Found empty relation data for relational-db relation.")
             raise ErrorWithStatus("Waiting for relational-db data", WaitingStatus)
 
@@ -378,7 +376,7 @@ class KatibDBManagerOperator(CharmBase):
     def _on_update_status(self, event):
         """Update status actions."""
         # skip update status processing in case of BlockedStatus
-        if self.model.unit.status == BlockedStatus:
+        if isinstance(self.model.unit.status, BlockedStatus):
             return
         try:
             self._refresh_status()
