@@ -34,7 +34,7 @@ class KatibDBManagerOperator(CharmBase):
         # retrieve configuration and base settings
         self.logger = logging.getLogger(__name__)
         self._container_name = "katib-db-manager"
-        self._database_name = "mysql"
+        self._database_name = "katib"
         self._container = self.unit.get_container(self._container_name)
         self._exec_command = "./katib-db-manager"
         self._port = self.model.config["port"]
@@ -115,7 +115,7 @@ class KatibDBManagerOperator(CharmBase):
     def service_environment(self):
         """Return environment variables based on model configuration."""
         ret_env_vars = {
-            "DB_NAME": self._db_data["db_name"],
+            "DB_NAME": self._db_data["db_type"],
             "DB_USER": self._db_data["db_username"],
             "DB_PASSWORD": self._db_data["db_password"],
             "KATIB_MYSQL_DB_HOST": self._db_data["katib_db_host"],
@@ -240,7 +240,7 @@ class KatibDBManagerOperator(CharmBase):
             relation_data = relation.data[unit]
             # retrieve database data from relation data
             # this also validates the expected data by means of KeyError exception
-            db_data["db_name"] = self._database_name
+            db_data["db_type"] = "mysql"
             db_data["db_username"] = relation_data["user"]
             db_data["db_password"] = relation_data["root_password"]
             db_data["katib_db_host"] = relation_data["host"]
@@ -277,13 +277,13 @@ class KatibDBManagerOperator(CharmBase):
             if not val:
                 continue
             try:
-                db_data["db_name"] = self._database_name
+                db_data["db_type"] = "mysql"
                 db_data["db_username"] = val["username"]
                 db_data["db_password"] = val["password"]
                 host, port = val["endpoints"].split(":")
                 db_data["katib_db_host"] = host
                 db_data["katib_db_port"] = port
-                db_data["katib_db_name"] = "database"
+                db_data["katib_db_name"] = self._database_name
             except KeyError as err:
                 self.logger.error(f"Missing attribute {err} in relational-db relation data")
                 # incorrect/incomplete data can be found in mysql relation which can be
