@@ -375,8 +375,11 @@ class KatibDBManagerOperator(CharmBase):
 
     def _on_update_status(self, event):
         """Update status actions."""
-        # skip update status processing in case of BlockedStatus
-        if isinstance(self.model.unit.status, BlockedStatus):
+        # skip update status processing in case of BlockedStatus or WaitingStatus
+        # WaitingStatus assumes DB relation is empty/incorrect which prevents workload from
+        # starting
+        status = self.model.unit.status
+        if isinstance(status, BlockedStatus) or isinstance(status, WaitingStatus):
             return
         try:
             self._refresh_status()
@@ -409,9 +412,6 @@ class KatibDBManagerOperator(CharmBase):
             force_conflicts (bool): Should only be used when need to resolved conflicts on K8S
                                     resources.
         """
-        if not self.container.can_connect():
-            event.defer()
-            return
         try:
             self._check_leader()
             self._apply_k8s_resources(force_conflicts=force_conflicts)
