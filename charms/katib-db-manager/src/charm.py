@@ -409,6 +409,9 @@ class KatibDBManagerOperator(CharmBase):
             force_conflicts (bool): Should only be used when need to resolved conflicts on K8S
                                     resources.
         """
+        if not self.container.can_connect():
+            event.defer()
+            return
         try:
             self._check_leader()
             self._apply_k8s_resources(force_conflicts=force_conflicts)
