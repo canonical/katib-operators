@@ -48,7 +48,7 @@ exceptiongroup==1.1.1
     #   pytest
 executing==1.2.0
     # via stack-data
-google-auth==2.19.1
+google-auth==2.20.0
     # via kubernetes
 h11==0.14.0
     # via
