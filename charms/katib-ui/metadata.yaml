@@ -56,7 +56,5 @@ requires:
           - prefix
     versions: [v1]
     __schema_source: https://raw.githubusercontent.com/canonical/operator-schemas/master/ingress.yaml
-provides:
   sidebar:
-    interface: sidebar
-    optional: true
+    interface: kubeflow_dashboard_sidebar
