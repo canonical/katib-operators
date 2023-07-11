@@ -241,7 +241,8 @@ class KatibDBManagerOperator(CharmBase):
             # retrieve database data from relation data
             # this also validates the expected data by means of KeyError exception
             db_data["db_type"] = "mysql"
-            db_data["db_username"] = relation_data["user"]
+            # in case of `mysql` relation older charms operated with hardcoded `root` username
+            db_data["db_username"] = "root"
             db_data["db_password"] = relation_data["root_password"]
             db_data["katib_db_host"] = relation_data["host"]
             db_data["katib_db_port"] = relation_data["port"]
