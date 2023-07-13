@@ -6,9 +6,9 @@ import logging
 
 from charmed_kubeflow_chisme.kubernetes import KubernetesResourceHandler as KRH  # noqa: N817
 from charmed_kubeflow_chisme.pebble import update_layer
-from charms.kubeflow_dashboard.v0.kubeflow_dashboard_sidebar import (
-    KubeflowDashboardSidebarRequirer,
-    SidebarItem,
+from charms.kubeflow_dashboard.v0.kubeflow_dashboard_links import (
+    DashboardLink,
+    KubeflowDashboardLinksRequirer,
 )
 from charms.observability_libs.v1.kubernetes_service_patch import KubernetesServicePatch
 from lightkube import ApiError
@@ -61,13 +61,22 @@ class KatibUIOperator(CharmBase):
             self.framework.observe(event, self.main)
 
         # add link to notebook in kubeflow-dashboard sidebar
-        self.kubeflow_dashboard_sidebar = KubeflowDashboardSidebarRequirer(
+        self.kubeflow_dashboard_sidebar = KubeflowDashboardLinksRequirer(
             charm=self,
-            relation_name="sidebar",
-            sidebar_items=[
-                SidebarItem(
-                    text="Experiments (AutoML)", link="/katib/", type="item", icon="kubeflow:katib"
-                )
+            relation_name="dashboard-links",
+            dashboard_links=[
+                DashboardLink(
+                    text="Experiments (AutoML)",
+                    link="/katib/",
+                    type="item",
+                    icon="kubeflow:katib",
+                    location="menu",
+                ),
+                DashboardLink(
+                    text="View Katib Experiments",
+                    link="/katib/",
+                    location="quick",
+                ),
             ],
         )
 
