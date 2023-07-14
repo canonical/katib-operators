@@ -2,16 +2,19 @@
 # Copyright 2022 Canonical Ltd.
 # See LICENSE file for licensing details.
 
-import json
 import logging
 
 from charmed_kubeflow_chisme.kubernetes import KubernetesResourceHandler as KRH  # noqa: N817
 from charmed_kubeflow_chisme.pebble import update_layer
+from charms.kubeflow_dashboard.v0.kubeflow_dashboard_links import (
+    DashboardLink,
+    KubeflowDashboardLinksRequirer,
+)
 from charms.observability_libs.v1.kubernetes_service_patch import KubernetesServicePatch
 from lightkube import ApiError
 from lightkube.generic_resource import load_in_cluster_generic_resources
 from lightkube.models.core_v1 import ServicePort
-from ops.charm import CharmBase, RelationJoinedEvent
+from ops.charm import CharmBase
 from ops.main import main
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, WaitingStatus
 from ops.pebble import Layer
@@ -56,9 +59,25 @@ class KatibUIOperator(CharmBase):
             self.on.katib_ui_pebble_ready,
         ]:
             self.framework.observe(event, self.main)
-        self.framework.observe(self.on.sidebar_relation_joined, self._on_sidebar_relation_joined)
-        self.framework.observe(
-            self.on.sidebar_relation_departed, self._on_sidebar_relation_departed
+
+        # add link to notebook in kubeflow-dashboard sidebar
+        self.kubeflow_dashboard_sidebar = KubeflowDashboardLinksRequirer(
+            charm=self,
+            relation_name="dashboard-links",
+            dashboard_links=[
+                DashboardLink(
+                    text="Experiments (AutoML)",
+                    link="/katib/",
+                    type="item",
+                    icon="kubeflow:katib",
+                    location="menu",
+                ),
+                DashboardLink(
+                    text="View Katib Experiments",
+                    link="/katib/",
+                    location="quick",
+                ),
+            ],
         )
 
     @property
@@ -127,31 +146,6 @@ class KatibUIOperator(CharmBase):
     def _check_container_connection(self):
         if not self.container.can_connect():
             raise CheckFailed("Pod startup is not complete", MaintenanceStatus)
-
-    def _on_sidebar_relation_joined(self, event: RelationJoinedEvent):
-        if not self.unit.is_leader():
-            return
-        event.relation.data[self.app].update(
-            {
-                "config": json.dumps(
-                    [
-                        {
-                            "app": self.app.name,
-                            "position": 5,
-                            "type": "item",
-                            "link": "/katib/",
-                            "text": "Experiments (AutoML)",
-                            "icon": "kubeflow:katib",
-                        }
-                    ]
-                )
-            }
-        )
-
-    def _on_sidebar_relation_departed(self, event):
-        if not self.unit.is_leader():
-            return
-        event.relation.data[self.app].update({"config": json.dumps([])})
 
     def _handle_ingress(self, interfaces):
         if interfaces["ingress"]:
