@@ -1,2 +1,4 @@
+jinja2
 ops
 oci-image
+pyyaml==6.0.1
