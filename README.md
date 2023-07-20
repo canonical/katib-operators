@@ -65,3 +65,36 @@ available charm run:
 If you aim to use Katib within an existing Kubeflow deployment in order to use it within the Kubeflow dashboard, you will have to integrate `katib-ui` to `istio-pilot` with the following command:
 
     juju relate istio-pilot katib-ui
+
+## Setting Custom Images for Katib Controller
+
+Katib controller comes with a set of preconfigured images that are used in Katib workloads. These images are part of the charm configuration under `images` in the `charms/katib-controller/config.yaml` file. The following is a list of default images used:
+
+```json
+{
+    "default_trial_template": "docker.io/kubeflowkatib/mxnet-mnist:v0.15.0",
+    "early_stopping__medianstop": "docker.io/kubeflowkatib/earlystopping-medianstop:v0.15.0",
+    "enas_cpu_template": "docker.io/kubeflowkatib/enas-cnn-cifar10-cpu:v0.15.0",
+    "metrics_collector_sidecar__stdout": "docker.io/kubeflowkatib/file-metrics-collector:v0.15.0",
+    "metrics_collector_sidecar__file": "docker.io/kubeflowkatib/file-metrics-collector:v0.15.0",
+    "metrics_collector_sidecar__tensorflow_event": "docker.io/kubeflowkatib/tfevent-metrics-collector:v0.15.0",
+    "pytorch_job_template__master": "docker.io/kubeflowkatib/pytorch-mnist-cpu:v0.15.0",
+    "pytorch_job_template__worker": "docker.io/kubeflowkatib/pytorch-mnist-cpu:v0.15.0",
+    "suggestion__random": "docker.io/kubeflowkatib/suggestion-hyperopt:v0.15.0",
+    "suggestion__tpe": "docker.io/kubeflowkatib/suggestion-hyperopt:v0.15.0",
+    "suggestion__grid": "docker.io/kubeflowkatib/suggestion-optuna:v0.15.0",
+    "suggestion__hyperband": "docker.io/kubeflowkatib/suggestion-hyperband:v0.15.0",
+    "suggestion__bayesianoptimization": "docker.io/kubeflowkatib/suggestion-skopt:v0.15.0",
+    "suggestion__cmaes": "docker.io/kubeflowkatib/suggestion-goptuna:v0.15.0",
+    "suggestion__sobol": "docker.io/kubeflowkatib/suggestion-goptuna:v0.15.0",
+    "suggestion__multivariate_tpe": "docker.io/kubeflowkatib/suggestion-optuna:v0.15.0",
+    "suggestion__enas": "docker.io/kubeflowkatib/suggestion-enas:v0.15.0",
+    "suggestion__darts": "docker.io/kubeflowkatib/suggestion-darts:v0.15.0",
+    "suggestion__pbt": "docker.io/kubeflowkatib/suggestion-pbt:v0.15.0"
+}
+```
+These images are being used in *.j2 files under charms/katib-controller/src/*.j2. You can override this setting by providing a JSON with your own set of images when deploying it with:
+```
+juju deploy katib-controller --config images='{"default_trial_template": "docker.io/kubeflowkatib/mxnet-mnist:v0.15.0", "early_stopping__medianstop": "docker.io/kubeflowkatib/earlystopping-medianstop:v0.15.0", "enas_cpu_template": "docker.io/kubeflowkatib/enas-cnn-cifar10-cpu:v0.15.0", "metrics_collector_sidecar__stdout": "docker.io/kubeflowkatib/file-metrics-collector:v0.15.0", "metrics_collector_sidecar__file": "docker.io/kubeflowkatib/file-metrics-collector:v0.15.0", "metrics_collector_sidecar__tensorflow_event": "docker.io/kubeflowkatib/tfevent-metrics-collector:v0.15.0", "pytorch_job_template__master": "docker.io/kubeflowkatib/pytorch-mnist-cpu:v0.15.0", "pytorch_job_template__worker": "docker.io/kubeflowkatib/pytorch-mnist-cpu:v0.15.0", "suggestion__random": "docker.io/kubeflowkatib/suggestion-hyperopt:v0.15.0", "suggestion__tpe": "docker.io/kubeflowkatib/suggestion-hyperopt:v0.15.0", "suggestion__grid": "docker.io/kubeflowkatib/suggestion-optuna:v0.15.0", "suggestion__hyperband": "docker.io/kubeflowkatib/suggestion-hyperband:v0.15.0", "suggestion__bayesianoptimization": "docker.io/kubeflowkatib/suggestion-skopt:v0.15.0", "suggestion__cmaes": "docker.io/kubeflowkatib/suggestion-goptuna:v0.15.0", "suggestion__sobol": "docker.io/kubeflowkatib/suggestion-goptuna:v0.15.0", "suggestion__multivariate_tpe": "docker.io/kubeflowkatib/suggestion-optuna:v0.15.0", "suggestion__enas": "docker.io/kubeflowkatib/suggestion-enas:v0.15.0", "suggestion__darts": "docker.io/kubeflowkatib/suggestion-darts:v0.15.0", "suggestion__pbt": "docker.io/kubeflowkatib/suggestion-pbt:v0.15.0"}'
+```
+

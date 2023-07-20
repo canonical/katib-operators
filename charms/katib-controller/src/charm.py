@@ -6,7 +6,7 @@ import logging
 from base64 import b64encode
 from pathlib import Path
 from subprocess import check_call
-from typing import Dict, List
+from typing import Dict
 
 import yaml
 from charms.grafana_k8s.v0.grafana_dashboard import GrafanaDashboardProvider
@@ -21,18 +21,18 @@ from ops.model import ActiveStatus, MaintenanceStatus, WaitingStatus
 logger = logging.getLogger(__name__)
 
 
-def parse_images_config(config: str) -> List[Dict]:
+def parse_images_config(config: str) -> Dict:
     """
     Parse a YAML config-defined images list.
 
     This function takes a YAML-formatted string 'config' containing a list of images
-    and returns a list of dictionaries representing the images.
+    and returns a dictionaryrepresenting the images.
 
     Args:
         config (str): YAML-formatted string representing a list of images.
 
     Returns:
-        List[Dict]: A list of dictionaries representing the images.
+        Dict: A list of images.
     """
     error_message = (
         f"Cannot parse a config-defined images list from config '{config}' - this"
