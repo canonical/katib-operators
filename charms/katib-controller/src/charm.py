@@ -18,6 +18,28 @@ from ops.framework import StoredState
 from ops.main import main
 from ops.model import ActiveStatus, MaintenanceStatus, WaitingStatus
 
+DEFAULT_IMAGES = {
+    "default_trial_template": "docker.io/kubeflowkatib/mxnet-mnist:v0.15.0",
+    "early_stopping__medianstop": "docker.io/kubeflowkatib/earlystopping-medianstop:v0.15.0",
+    "enas_cpu_template": "docker.io/kubeflowkatib/enas-cnn-cifar10-cpu:v0.15.0",
+    "metrics_collector_sidecar__stdout": "docker.io/kubeflowkatib/file-metrics-collector:v0.15.0",
+    "metrics_collector_sidecar__file": "docker.io/kubeflowkatib/file-metrics-collector:v0.15.0",
+    "metrics_collector_sidecar__tensorflow_event": "docker.io/kubeflowkatib/tfevent-metrics-collector:v0.15.0",  # noqa: E501
+    "pytorch_job_template__master": "docker.io/kubeflowkatib/pytorch-mnist-cpu:v0.15.0",
+    "pytorch_job_template__worker": "docker.io/kubeflowkatib/pytorch-mnist-cpu:v0.15.0",
+    "suggestion__random": "docker.io/kubeflowkatib/suggestion-hyperopt:v0.15.0",
+    "suggestion__tpe": "docker.io/kubeflowkatib/suggestion-hyperopt:v0.15.0",
+    "suggestion__grid": "docker.io/kubeflowkatib/suggestion-optuna:v0.15.0",
+    "suggestion__hyperband": "docker.io/kubeflowkatib/suggestion-hyperband:v0.15.0",
+    "suggestion__bayesianoptimization": "docker.io/kubeflowkatib/suggestion-skopt:v0.15.0",
+    "suggestion__cmaes": "docker.io/kubeflowkatib/suggestion-goptuna:v0.15.0",
+    "suggestion__sobol": "docker.io/kubeflowkatib/suggestion-goptuna:v0.15.0",
+    "suggestion__multivariate_tpe": "docker.io/kubeflowkatib/suggestion-optuna:v0.15.0",
+    "suggestion__enas": "docker.io/kubeflowkatib/suggestion-enas:v0.15.0",
+    "suggestion__darts": "docker.io/kubeflowkatib/suggestion-darts:v0.15.0",
+    "suggestion__pbt": "docker.io/kubeflowkatib/suggestion-pbt:v0.15.0",
+}
+
 logger = logging.getLogger(__name__)
 
 
@@ -43,7 +65,9 @@ def parse_images_config(config: str) -> Dict:
     try:
         images = yaml.safe_load(config)
     except yaml.YAMLError as err:
-        logger.warning(f"{error_message}  Got error: {err}")
+        logger.warning(
+            f"{error_message}  Got error: {err}, while parsing the custom_image config."
+        )
         return []
     return images
 
@@ -89,8 +113,8 @@ class Operator(CharmBase):
 
         self._stored.set_default(**self.gen_certs())
         self.image = OCIImageResource(self, "oci-image")
-        self.images_context = parse_images_config(self.model.config["images"])
-
+        self.custom_images = parse_images_config(self.model.config["custom_images"])
+        self.images_context = self.get_images(DEFAULT_IMAGES, self.custom_images)
         self.env = Environment(loader=FileSystemLoader("src/"))
 
         self.prometheus_provider = MetricsEndpointProvider(
@@ -111,6 +135,36 @@ class Operator(CharmBase):
             self.on.upgrade_charm,
         ]:
             self.framework.observe(event, self.set_pod_spec)
+
+    def get_images(
+        self, default_images: Dict[str, str], custom_images: Dict[str, str]
+    ) -> Dict[str, str]:
+        """
+        Combine default images with custom images.
+
+        This function takes two dictionaries, 'default_images' and 'custom_images',
+        representing the default set of images and the custom set of images respectively.
+        It combines the custom images into the default image list, overriding any matching
+        image names from the default list with the custom ones.
+
+        Args:
+            default_images (Dict[str, str]): A dictionary containing the default image names
+                as keys and their corresponding default image URIs as values.
+            custom_images (Dict[str, str]): A dictionary containing the custom image names
+                as keys and their corresponding custom image URIs as values.
+
+        Returns:
+            Dict[str, str]: A dictionary representing the combined images, where image names
+            from the custom_images override any matching image names from the default_images.
+        """
+        images = default_images
+        for image_name, custom_image in custom_images.items():
+            if custom_image:
+                if image_name in images:
+                    images[image_name] = custom_image
+                else:
+                    logger.warning(f"image_name {image_name} not in image list, ignoring.")
+        return images
 
     def set_pod_spec(self, event):
         self.model.unit.status = MaintenanceStatus("Setting pod spec")
