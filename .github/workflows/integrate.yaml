@@ -59,19 +59,13 @@ jobs:
           channel: 1.24/stable
           juju-channel: 2.9/stable
           charmcraft-channel: latest/candidate
-
-      # TODO: Remove once the actions-operator does this automatically
-      - name: Configure kubectl
-        run: |
-          sg microk8s -c "microk8s config > ~/.kube/config"
-
       - run: |
           sg microk8s -c "tox -e ${{ matrix.charm }}-integration"
 
       # Collect debug logs if failed
       - name: Dump Juju/k8s logs on failure
         uses: canonical/charm-logdump-action@main
-        if: failure()
+        if: always()
         with:
           app: ${{ matrix.charm }}
           model: testing
