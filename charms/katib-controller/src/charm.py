@@ -48,7 +48,7 @@ def parse_images_config(config: str) -> Dict:
     Parse a YAML config-defined images list.
 
     This function takes a YAML-formatted string 'config' containing a list of images
-    and returns a dictionaryrepresenting the images.
+    and returns a dictionary representing the images.
 
     Args:
         config (str): YAML-formatted string representing a list of images.
@@ -301,7 +301,7 @@ class Operator(CharmBase):
                 },
                 "configMaps": {
                     "katib-config": {
-                        f: render_template(f"src/{f}.json.j2", self.images_context)
+                        f: render_template(f"src/templates/{f}.json.j2", self.images_context)
                         for f in (
                             "metrics-collector-sidecar",
                             "suggestion",
@@ -309,7 +309,10 @@ class Operator(CharmBase):
                         )
                     },
                     "trial-template": {
-                        f + suffix: render_template(f"src/{f}.yaml.j2", self.images_context)
+                        f
+                        + suffix: render_template(
+                            f"src/templates/{f}.yaml.j2", self.images_context
+                        )
                         for f, suffix in (
                             ("defaultTrialTemplate", ".yaml"),
                             ("enasCPUTemplate", ""),
@@ -324,7 +327,7 @@ class Operator(CharmBase):
 
     def _rendered_webhook_definitions(self):
         ca_crt = b64encode(self._stored.ca.encode("ascii")).decode("utf-8")
-        yaml_file = self.env.get_template("webhooks.yaml").render(ca_bundle=ca_crt)
+        yaml_file = self.env.get_template("templates/webhooks.yaml.j2").render(ca_bundle=ca_crt)
         validating, mutating = yaml.safe_load_all(yaml_file)
         return validating, mutating
 
