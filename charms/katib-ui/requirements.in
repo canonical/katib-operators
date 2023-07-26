@@ -1,6 +1,4 @@
 charmed-kubeflow-chisme
-jinja2
 lightkube
-oci-image
 ops
 serialized-data-interface
