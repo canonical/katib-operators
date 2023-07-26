@@ -9,7 +9,7 @@ spec:
         spec:
           containers:
             - name: pytorch
-              image: docker.io/kubeflowkatib/pytorch-mnist-cpu:v0.15.0
+              image: {{ pytorch_job_template__master }}
               command:
                 - "python3"
                 - "/opt/pytorch-mnist/mnist.py"
@@ -23,7 +23,7 @@ spec:
         spec:
           containers:
             - name: pytorch
-              image: docker.io/kubeflowkatib/pytorch-mnist-cpu:v0.15.0
+              image: {{ pytorch_job_template__worker }}
               command:
                 - "python3"
                 - "/opt/pytorch-mnist/mnist.py"

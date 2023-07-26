@@ -6,18 +6,90 @@ import logging
 from base64 import b64encode
 from pathlib import Path
 from subprocess import check_call
+from typing import Dict
 
 import yaml
 from charms.grafana_k8s.v0.grafana_dashboard import GrafanaDashboardProvider
 from charms.prometheus_k8s.v0.prometheus_scrape import MetricsEndpointProvider
-from jinja2 import Environment, FileSystemLoader
+from jinja2 import Environment, FileSystemLoader, Template
 from oci_image import OCIImageResource, OCIImageResourceError
 from ops.charm import CharmBase
 from ops.framework import StoredState
 from ops.main import main
-from ops.model import ActiveStatus, MaintenanceStatus, WaitingStatus
+from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, WaitingStatus
+
+DEFAULT_IMAGES = {
+    "default_trial_template": "docker.io/kubeflowkatib/mxnet-mnist:v0.15.0",
+    "early_stopping__medianstop": "docker.io/kubeflowkatib/earlystopping-medianstop:v0.15.0",
+    "enas_cpu_template": "docker.io/kubeflowkatib/enas-cnn-cifar10-cpu:v0.15.0",
+    "metrics_collector_sidecar__stdout": "docker.io/kubeflowkatib/file-metrics-collector:v0.15.0",
+    "metrics_collector_sidecar__file": "docker.io/kubeflowkatib/file-metrics-collector:v0.15.0",
+    "metrics_collector_sidecar__tensorflow_event": "docker.io/kubeflowkatib/tfevent-metrics-collector:v0.15.0",  # noqa: E501
+    "pytorch_job_template__master": "docker.io/kubeflowkatib/pytorch-mnist-cpu:v0.15.0",
+    "pytorch_job_template__worker": "docker.io/kubeflowkatib/pytorch-mnist-cpu:v0.15.0",
+    "suggestion__random": "docker.io/kubeflowkatib/suggestion-hyperopt:v0.15.0",
+    "suggestion__tpe": "docker.io/kubeflowkatib/suggestion-hyperopt:v0.15.0",
+    "suggestion__grid": "docker.io/kubeflowkatib/suggestion-optuna:v0.15.0",
+    "suggestion__hyperband": "docker.io/kubeflowkatib/suggestion-hyperband:v0.15.0",
+    "suggestion__bayesianoptimization": "docker.io/kubeflowkatib/suggestion-skopt:v0.15.0",
+    "suggestion__cmaes": "docker.io/kubeflowkatib/suggestion-goptuna:v0.15.0",
+    "suggestion__sobol": "docker.io/kubeflowkatib/suggestion-goptuna:v0.15.0",
+    "suggestion__multivariate_tpe": "docker.io/kubeflowkatib/suggestion-optuna:v0.15.0",
+    "suggestion__enas": "docker.io/kubeflowkatib/suggestion-enas:v0.15.0",
+    "suggestion__darts": "docker.io/kubeflowkatib/suggestion-darts:v0.15.0",
+    "suggestion__pbt": "docker.io/kubeflowkatib/suggestion-pbt:v0.15.0",
+}
 
 logger = logging.getLogger(__name__)
+
+
+def parse_images_config(config: str) -> Dict:
+    """
+    Parse a YAML config-defined images list.
+
+    This function takes a YAML-formatted string 'config' containing a list of images
+    and returns a dictionary representing the images.
+
+    Args:
+        config (str): YAML-formatted string representing a list of images.
+
+    Returns:
+        Dict: A list of images.
+    """
+    error_message = (
+        f"Cannot parse a config-defined images list from config '{config}' - this"
+        "config input will be ignored."
+    )
+    if not config:
+        return []
+    try:
+        images = yaml.safe_load(config)
+    except yaml.YAMLError as err:
+        logger.warning(
+            f"{error_message}  Got error: {err}, while parsing the custom_image config."
+        )
+        raise CheckFailed(error_message, BlockedStatus)
+    return images
+
+
+def render_template(template_path: str, context: Dict) -> str:
+    """
+    Render a Jinja2 template.
+
+    This function takes the file path of a Jinja2 template and a context dictionary
+    containing the variables for template rendering. It loads the template,
+    substitutes the variables in the context, and returns the rendered content.
+
+    Args:
+        template_path (str): The file path of the Jinja2 template.
+        context (Dict): A dictionary containing the variables for template rendering.
+
+    Returns:
+        str: The rendered template content.
+    """
+    template = Template(Path(template_path).read_text())
+    rendered_template = template.render(**context)
+    return rendered_template
 
 
 class CheckFailed(Exception):
@@ -41,7 +113,8 @@ class Operator(CharmBase):
 
         self._stored.set_default(**self.gen_certs())
         self.image = OCIImageResource(self, "oci-image")
-
+        self.custom_images = []
+        self.images_context = {}
         self.env = Environment(loader=FileSystemLoader("src/"))
 
         self.prometheus_provider = MetricsEndpointProvider(
@@ -63,12 +136,43 @@ class Operator(CharmBase):
         ]:
             self.framework.observe(event, self.set_pod_spec)
 
+    def get_images(
+        self, default_images: Dict[str, str], custom_images: Dict[str, str]
+    ) -> Dict[str, str]:
+        """
+        Combine default images with custom images.
+
+        This function takes two dictionaries, 'default_images' and 'custom_images',
+        representing the default set of images and the custom set of images respectively.
+        It combines the custom images into the default image list, overriding any matching
+        image names from the default list with the custom ones.
+
+        Args:
+            default_images (Dict[str, str]): A dictionary containing the default image names
+                as keys and their corresponding default image URIs as values.
+            custom_images (Dict[str, str]): A dictionary containing the custom image names
+                as keys and their corresponding custom image URIs as values.
+
+        Returns:
+            Dict[str, str]: A dictionary representing the combined images, where image names
+            from the custom_images override any matching image names from the default_images.
+        """
+        images = default_images
+        for image_name, custom_image in custom_images.items():
+            if custom_image:
+                if image_name in images:
+                    images[image_name] = custom_image
+                else:
+                    logger.warning(f"image_name {image_name} not in image list, ignoring.")
+        return images
+
     def set_pod_spec(self, event):
         self.model.unit.status = MaintenanceStatus("Setting pod spec")
 
         try:
             self._check_leader()
-
+            self.custom_images = parse_images_config(self.model.config["custom_images"])
+            self.images_context = self.get_images(DEFAULT_IMAGES, self.custom_images)
             image_details = self._check_image_details()
         except CheckFailed as check_failed:
             self.model.unit.status = check_failed.status
@@ -198,7 +302,7 @@ class Operator(CharmBase):
                 },
                 "configMaps": {
                     "katib-config": {
-                        f: Path(f"src/{f}.json").read_text()
+                        f: render_template(f"src/templates/{f}.json.j2", self.images_context)
                         for f in (
                             "metrics-collector-sidecar",
                             "suggestion",
@@ -206,7 +310,10 @@ class Operator(CharmBase):
                         )
                     },
                     "trial-template": {
-                        f + suffix: Path(f"src/{f}.yaml").read_text()
+                        f
+                        + suffix: render_template(
+                            f"src/templates/{f}.yaml.j2", self.images_context
+                        )
                         for f, suffix in (
                             ("defaultTrialTemplate", ".yaml"),
                             ("enasCPUTemplate", ""),
@@ -221,7 +328,7 @@ class Operator(CharmBase):
 
     def _rendered_webhook_definitions(self):
         ca_crt = b64encode(self._stored.ca.encode("ascii")).decode("utf-8")
-        yaml_file = self.env.get_template("webhooks.yaml").render(ca_bundle=ca_crt)
+        yaml_file = self.env.get_template("templates/webhooks.yaml.j2").render(ca_bundle=ca_crt)
         validating, mutating = yaml.safe_load_all(yaml_file)
         return validating, mutating
 
