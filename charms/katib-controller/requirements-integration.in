@@ -1,0 +1,3 @@
+juju==2.9.44
+lightkube
+pytest-operator
