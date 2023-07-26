@@ -89,3 +89,10 @@ class TestCharm:
 
         assert katib_config_cm.data == EXPECTED_KATIB_CONFIG_CHANGED
         assert trial_template_cm.data == EXPECTED_TRIAL_TEMPLATE_CHANGED
+
+    async def test_bocked_on_invalid_config(self, ops_test: OpsTest):
+        await ops_test.model.applications[CHARM_NAME].set_config({"custom_images": "{"})
+        await ops_test.model.wait_for_idle(
+            apps=[CHARM_NAME], status="blocked", raise_on_blocked=False, timeout=300
+        )
+        assert ops_test.model.applications[CHARM_NAME].units[0].workload_status == "blocked"

@@ -16,7 +16,7 @@ from oci_image import OCIImageResource, OCIImageResourceError
 from ops.charm import CharmBase
 from ops.framework import StoredState
 from ops.main import main
-from ops.model import ActiveStatus, MaintenanceStatus, WaitingStatus
+from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, WaitingStatus
 
 DEFAULT_IMAGES = {
     "default_trial_template": "docker.io/kubeflowkatib/mxnet-mnist:v0.15.0",
@@ -68,7 +68,7 @@ def parse_images_config(config: str) -> Dict:
         logger.warning(
             f"{error_message}  Got error: {err}, while parsing the custom_image config."
         )
-        return []
+        raise CheckFailed(error_message, BlockedStatus)
     return images
 
 
@@ -113,8 +113,8 @@ class Operator(CharmBase):
 
         self._stored.set_default(**self.gen_certs())
         self.image = OCIImageResource(self, "oci-image")
-        self.custom_images = parse_images_config(self.model.config["custom_images"])
-        self.images_context = self.get_images(DEFAULT_IMAGES, self.custom_images)
+        self.custom_images = []
+        self.images_context = {}
         self.env = Environment(loader=FileSystemLoader("src/"))
 
         self.prometheus_provider = MetricsEndpointProvider(
@@ -171,7 +171,8 @@ class Operator(CharmBase):
 
         try:
             self._check_leader()
-
+            self.custom_images = parse_images_config(self.model.config["custom_images"])
+            self.images_context = self.get_images(DEFAULT_IMAGES, self.custom_images)
             image_details = self._check_image_details()
         except CheckFailed as check_failed:
             self.model.unit.status = check_failed.status
