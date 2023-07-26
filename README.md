@@ -100,4 +100,4 @@ These images can be overridden in the charm configuration under custom_images in
 juju config katib-controller custom_images='{"default_trial_template": "custom:1.0", "early_stopping__medianstop": "cuustom:2.1"}'
 ```
 
-These images are being used in *.j2 files under charms/katib-controller/src/*.j2. 
+These images are being used in *.j2 files under charms/katib-controller/src/templates/*.j2. 
