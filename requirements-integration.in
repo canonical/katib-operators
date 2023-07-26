@@ -1,9 +1,10 @@
 # Copyright 2023 Canonical Ltd.
 # See LICENSE file for licensing details.
+lightkube
 # Pinning to <3.0 due to compatibility with the 2.9 controller version and 3.0 not being maintained anymore
 juju<3.0
-pytest
-pyyaml
 lightkube
+pytest
 pytest-operator
+pyyaml
 tenacity
