@@ -1,7 +1,3 @@
-ops>=2.2.0
-oci-image
-# Pinning until this resolves https://github.com/yaml/pyyaml/issues/724
-pyyaml==6.0.1
-charmed-kubeflow-chisme>=0.0.8
+charmed-kubeflow-chisme
 lightkube
-lightkube-models>=1.25.4
+ops
