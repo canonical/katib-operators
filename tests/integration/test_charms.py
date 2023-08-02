@@ -110,5 +110,5 @@ async def test_create_experiment(ops_test: OpsTest, experiment_file):
     )
 
     assert_get_experiment(logger=logger, client=lightkube_client, name=exp_name, namespace=namespace)
-    assert_exp_status_running(logger=logger, resource_name=exp_name, namespace=namespace)
+    assert_exp_status_running(logger=logger, client=lightkube_client, name=exp_name, namespace=namespace)
     # assert_trial_status_running()
