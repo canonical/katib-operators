@@ -10,7 +10,7 @@ import lightkube.resources.core_v1
 import pytest
 import yaml
 from pytest_operator.plugin import OpsTest
-from utils import assert_exp_status_running, assert_get_experiment, create_experiment
+from utils import assert_exp_status_running, assert_get_experiment, create_experiment, assert_trial_status_running
 
 CONTROLLER_PATH = Path("charms/katib-controller")
 UI_PATH = Path("charms/katib-ui")
@@ -23,14 +23,6 @@ DB_METADATA = yaml.safe_load(Path(f"{DB_PATH}/metadata.yaml").read_text())
 CONTROLLER_APP_NAME = CONTROLLER_METADATA["name"]
 UI_APP_NAME = UI_METADATA["name"]
 DB_APP_NAME = DB_METADATA["name"]
-
-# TRIAL = create_namespaced_resource(
-#     group="kubeflow.org",
-#     version="v1beta1",
-#     kind="trial",
-#     plural="trials",
-#     verbs=None,
-# )
 
 logger = logging.getLogger(__name__)
 
@@ -109,6 +101,6 @@ async def test_create_experiment(ops_test: OpsTest, experiment_file):
         client=lightkube_client, exp_path=experiment_file, namespace=namespace
     )
 
-    assert_get_experiment(logger=logger, client=lightkube_client, name=exp_name, namespace=namespace)
-    assert_exp_status_running(logger=logger, client=lightkube_client, name=exp_name, namespace=namespace)
-    # assert_trial_status_running()
+    assert_get_experiment(logger, lightkube_client, exp_name, namespace)
+    assert_exp_status_running(logger, lightkube_client, exp_name, namespace)
+    assert_trial_status_running(logger, lightkube_client, exp_name, namespace)

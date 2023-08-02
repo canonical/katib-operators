@@ -10,6 +10,13 @@ EXPERIMENT = create_namespaced_resource(
     verbs=None,
 )
 
+TRIAL = create_namespaced_resource(
+    group="kubeflow.org",
+    version="v1beta1",
+    kind="trial",
+    plural="trials",
+    verbs=None,
+)
 
 def create_experiment(client, exp_path, namespace) -> str:
     """Create Experiment instance."""
@@ -60,17 +67,17 @@ def assert_exp_status_running(logger, client, name, namespace):
     stop=tenacity.stop_after_attempt(10),
     reraise=True,
 )
-def assert_trial_status_running(logger, client, resource_class, experiment_name, namespace):
-    """Asserts the trial status is Running.
+def assert_trial_status_running(logger, client, experiment_name, namespace):
+    """Asserts the trials belonging to an experiment are Running.
     Retries multiple times using tenacity to allow the trial
-    to be in Running state
+    to be in Running state.
     """
     trials = client.list(
-        resource_class,
+        TRIAL,
         namespace=namespace,
         labels={"katib.kubeflow.org/experiment": experiment_name},
     )
-    trial = next(trials)
-    trial_status = trial.status["conditions"][-1]["type"]
-    logger.info(f"Trial Status is {trial_status}")
-    assert trial_status == "Running", f"{trial.metadata.name} not running, status = {trial_status}"
+    for trial in trials:
+        trial_status = trial.status["conditions"][-1]["type"]
+        logger.info(f"Trial Status is {trial_status}")
+        assert trial_status == "Running", f"{trial.metadata.name} not running, status = {trial_status}"
