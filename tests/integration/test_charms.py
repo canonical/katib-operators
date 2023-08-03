@@ -83,8 +83,8 @@ async def test_deploy_katib_charms(ops_test: OpsTest):
 @pytest.mark.parametrize(
     "experiment_file",
     [
-        "examples/v1beta1/hp-tuning/grid-example.yaml",
-        "examples/v1beta1/metrics-collector/file-metrics-collector.yaml",
+        "tests/assets/crs/grid-example.yaml",
+        "tests/assets/crs/file-metrics-collector.yaml",
     ],
 )
 async def test_kaitb_experiments(ops_test: OpsTest, experiment_file):
