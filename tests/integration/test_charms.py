@@ -10,7 +10,14 @@ import lightkube.resources.core_v1
 import pytest
 import yaml
 from pytest_operator.plugin import OpsTest
-from utils import assert_exp_status_running, assert_get_experiment, create_experiment, assert_trial_status_running
+from utils import (
+    assert_deleted,
+    assert_exp_status_running,
+    assert_get_experiment,
+    assert_trial_status_running,
+    create_experiment,
+    delete_experiment,
+)
 
 CONTROLLER_PATH = Path("charms/katib-controller")
 UI_PATH = Path("charms/katib-ui")
@@ -80,7 +87,12 @@ async def test_deploy_katib_charms(ops_test: OpsTest):
         "examples/v1beta1/metrics-collector/file-metrics-collector.yaml",
     ],
 )
-async def test_create_experiment(ops_test: OpsTest, experiment_file):
+async def test_kaitb_experiments(ops_test: OpsTest, experiment_file):
+    """Test Katib Experiments.
+
+    Each experiment is created, running, and has running trials.
+    At the end, experiment is deleted.
+    """
     namespace = ops_test.model_name
     lightkube_client = lightkube.Client()
 
@@ -104,3 +116,6 @@ async def test_create_experiment(ops_test: OpsTest, experiment_file):
     assert_get_experiment(logger, lightkube_client, exp_name, namespace)
     assert_exp_status_running(logger, lightkube_client, exp_name, namespace)
     assert_trial_status_running(logger, lightkube_client, exp_name, namespace)
+
+    delete_experiment(lightkube_client, exp_name, namespace)
+    assert_deleted(logger, lightkube_client, exp_name, namespace)

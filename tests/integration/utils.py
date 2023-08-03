@@ -1,5 +1,6 @@
 import tenacity
 import yaml
+from lightkube import ApiError
 from lightkube.generic_resource import create_namespaced_resource
 
 EXPERIMENT = create_namespaced_resource(
@@ -18,6 +19,7 @@ TRIAL = create_namespaced_resource(
     verbs=None,
 )
 
+
 def create_experiment(client, exp_path, namespace) -> str:
     """Create Experiment instance."""
     with open(exp_path) as f:
@@ -25,6 +27,11 @@ def create_experiment(client, exp_path, namespace) -> str:
     exp_object = EXPERIMENT(exp_yaml)
     client.create(exp_object, namespace=namespace)
     return exp_yaml["metadata"]["name"]
+
+
+def delete_experiment(client, name, namespace):
+    """Delete Experiment instance."""
+    client.delete(EXPERIMENT, name=name, namespace=namespace)
 
 
 @tenacity.retry(
@@ -80,4 +87,25 @@ def assert_trial_status_running(logger, client, experiment_name, namespace):
     for trial in trials:
         trial_status = trial.status["conditions"][-1]["type"]
         logger.info(f"Trial Status is {trial_status}")
-        assert trial_status == "Running", f"{trial.metadata.name} not running, status = {trial_status}"
+        assert (
+            trial_status == "Running"
+        ), f"{trial.metadata.name} not running, status = {trial_status}"
+
+
+@tenacity.retry(
+    wait=tenacity.wait_exponential(multiplier=2, min=1, max=10),
+    stop=tenacity.stop_after_attempt(80),
+    reraise=True,
+)
+def assert_deleted(logger, client, experiment_name, namespace):
+    """Test for deleted resource. Retries multiple times to allow experiment to be deleted."""
+    logger.info(f"Waiting for {EXPERIMENT}/{experiment_name} to be deleted.")
+    deleted = False
+    try:
+        client.get(EXPERIMENT, experiment_name, namespace=namespace)
+    except ApiError as error:
+        logger.info(f"Not found {EXPERIMENT}/{experiment_name}. Status {error.status.code} ")
+        if error.status.code == 404:
+            deleted = True
+
+    assert deleted, f"Waited too long for {EXPERIMENT}/{experiment_name} to be deleted!"
