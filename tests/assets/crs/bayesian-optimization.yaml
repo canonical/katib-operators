@@ -1,7 +1,9 @@
+---
 apiVersion: kubeflow.org/v1beta1
 kind: Experiment
 metadata:
-  name: random
+  namespace: kubeflow
+  name: bayesian-optimization-annot
 spec:
   objective:
     type: maximize
@@ -10,7 +12,10 @@ spec:
     additionalMetricNames:
       - Train-accuracy
   algorithm:
-    algorithmName: random
+    algorithmName: bayesianoptimization
+    algorithmSettings:
+      - name: "random_state"
+        value: "10"
   parallelTrialCount: 1
   maxTrialCount: 1
   maxFailedTrialCount: 1
@@ -52,7 +57,7 @@ spec:
           spec:
             containers:
               - name: training-container
-                image: docker.io/kubeflowkatib/mxnet-mnist:latest
+                image: docker.io/kubeflowkatib/mxnet-mnist:v0.15.0
                 command:
                   - "python3"
                   - "/opt/mxnet-mnist/mnist.py"
@@ -61,3 +66,6 @@ spec:
                   - "--num-layers=${trialParameters.numberLayers}"
                   - "--optimizer=${trialParameters.optimizer}"
             restartPolicy: Never
+          metadata:
+            annotations:
+              sidecar.istio.io/inject: "false"

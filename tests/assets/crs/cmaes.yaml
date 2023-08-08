@@ -1,7 +1,9 @@
+---
 apiVersion: kubeflow.org/v1beta1
 kind: Experiment
 metadata:
-  name: random
+  namespace: kubeflow
+  name: cmaes
 spec:
   objective:
     type: maximize
@@ -10,7 +12,10 @@ spec:
     additionalMetricNames:
       - Train-accuracy
   algorithm:
-    algorithmName: random
+    algorithmName: cmaes
+    algorithmSettings:
+      - name: "restart_strategy"
+        value: "ipop"
   parallelTrialCount: 1
   maxTrialCount: 1
   maxFailedTrialCount: 1
@@ -52,7 +57,7 @@ spec:
           spec:
             containers:
               - name: training-container
-                image: docker.io/kubeflowkatib/mxnet-mnist:latest
+                image: docker.io/kubeflowkatib/mxnet-mnist:v0.15.0
                 command:
                   - "python3"
                   - "/opt/mxnet-mnist/mnist.py"

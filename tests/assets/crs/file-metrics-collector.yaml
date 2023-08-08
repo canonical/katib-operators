@@ -22,9 +22,9 @@ spec:
       kind: File
   algorithm:
     algorithmName: random
-  parallelTrialCount: 3
-  maxTrialCount: 12
-  maxFailedTrialCount: 3
+  parallelTrialCount: 1
+  maxTrialCount: 1
+  maxFailedTrialCount: 1
   parameters:
     - name: lr
       parameterType: double
