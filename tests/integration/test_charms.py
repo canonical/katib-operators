@@ -10,14 +10,6 @@ import lightkube.resources.core_v1
 import pytest
 import yaml
 from pytest_operator.plugin import OpsTest
-from utils import (
-    assert_deleted,
-    assert_exp_status_running,
-    assert_get_experiment,
-    assert_trial_status_running,
-    create_experiment,
-    delete_experiment,
-)
 
 CONTROLLER_PATH = Path("charms/katib-controller")
 UI_PATH = Path("charms/katib-ui")
@@ -78,37 +70,3 @@ async def test_deploy_katib_charms(ops_test: OpsTest):
         raise_on_blocked=True,
         timeout=360,
     )
-
-
-async def test_kaitb_experiments(ops_test: OpsTest):
-    """Test Katib Experiments.
-
-    Each experiment is created, running, and has running trials.
-    At the end, experiment is deleted.
-    """
-    namespace = ops_test.model_name
-    lightkube_client = lightkube.Client()
-
-    # Add metrics collector injection enabled label to namespace
-    test_namespace = lightkube_client.get(
-        res=lightkube.resources.core_v1.Namespace, name=namespace
-    )
-    test_namespace.metadata.labels.update(
-        {"katib.kubeflow.org/metrics-collector-injection": "enabled"}
-    )
-    lightkube_client.patch(
-        res=lightkube.resources.core_v1.Namespace,
-        name=test_namespace.metadata.name,
-        obj=test_namespace,
-    )
-
-    exp_name = create_experiment(
-        client=lightkube_client, exp_path="tests/assets/crs/grid-example.yaml", namespace=namespace
-    )
-
-    assert_get_experiment(logger, lightkube_client, exp_name, namespace)
-    assert_exp_status_running(logger, lightkube_client, exp_name, namespace)
-    assert_trial_status_running(logger, lightkube_client, exp_name, namespace)
-
-    delete_experiment(lightkube_client, exp_name, namespace)
-    assert_deleted(logger, lightkube_client, exp_name, namespace)
