@@ -1,12 +1,9 @@
-# Copyright 2023 Canonical Ltd.
-# See LICENSE file for licensing details.
+"""Integration tests for Katib Experiments."""
 
 import logging
 from pathlib import Path
 
 import lightkube
-import lightkube.generic_resource
-import lightkube.resources.core_v1
 import pytest
 import yaml
 from pytest_operator.plugin import OpsTest
@@ -18,6 +15,9 @@ from utils import (
     create_experiment,
     delete_experiment,
 )
+
+logger = logging.getLogger(__name__)
+
 
 CONTROLLER_PATH = Path("charms/katib-controller")
 UI_PATH = Path("charms/katib-ui")
@@ -80,7 +80,22 @@ async def test_deploy_katib_charms(ops_test: OpsTest):
     )
 
 
-async def test_kaitb_experiments(ops_test: OpsTest):
+@pytest.mark.parametrize(
+    "experiment_file",
+    [
+        "tests/assets/crs/bayesian-optimization.yaml",
+        "tests/assets/crs/cmaes.yaml",
+        "tests/assets/crs/darts-cpu.yaml",
+        "tests/assets/crs/enas-cpu.yaml",
+        "tests/assets/crs/file-metrics-collector.yaml",
+        "tests/assets/crs/grid-example.yaml",
+        "tests/assets/crs/hyperband.yaml",
+        "tests/assets/crs/median-stop.yaml",
+        "tests/assets/crs/random.yaml",
+        "tests/assets/crs/simple-pbt.yaml",
+    ],
+)
+async def test_kaitb_experiments(ops_test: OpsTest, experiment_file):
     """Test Katib Experiments.
 
     Each experiment is created, running, and has running trials.
@@ -103,7 +118,7 @@ async def test_kaitb_experiments(ops_test: OpsTest):
     )
 
     exp_name = create_experiment(
-        client=lightkube_client, exp_path="tests/assets/crs/grid-example.yaml", namespace=namespace
+        client=lightkube_client, exp_path=experiment_file, namespace=namespace
     )
 
     assert_get_experiment(logger, lightkube_client, exp_name, namespace)
