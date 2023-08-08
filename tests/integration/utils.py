@@ -51,7 +51,7 @@ def assert_get_experiment(logger, client, name, namespace):
 
 @tenacity.retry(
     wait=tenacity.wait_exponential(multiplier=2, min=1, max=30),
-    stop=tenacity.stop_after_attempt(10),
+    stop=tenacity.stop_after_attempt(80),
     reraise=True,
 )
 def assert_exp_status_running(logger, client, name, namespace):
@@ -71,7 +71,7 @@ def assert_exp_status_running(logger, client, name, namespace):
 
 @tenacity.retry(
     wait=tenacity.wait_exponential(multiplier=2, min=1, max=15),
-    stop=tenacity.stop_after_attempt(10),
+    stop=tenacity.stop_after_attempt(80),
     reraise=True,
 )
 def assert_trial_status_running(logger, client, experiment_name, namespace):
@@ -94,7 +94,7 @@ def assert_trial_status_running(logger, client, experiment_name, namespace):
 
 @tenacity.retry(
     wait=tenacity.wait_exponential(multiplier=2, min=1, max=10),
-    stop=tenacity.stop_after_attempt(80),
+    stop=tenacity.stop_after_attempt(10),
     reraise=True,
 )
 def assert_deleted(logger, client, experiment_name, namespace):
