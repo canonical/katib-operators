@@ -5,11 +5,9 @@
 """
 
 import logging
-from pathlib import Path
 
 import lightkube
 import pytest
-import yaml
 from pytest_operator.plugin import OpsTest
 from utils import (
     assert_deleted,
@@ -21,6 +19,7 @@ from utils import (
 )
 
 logger = logging.getLogger(__name__)
+
 
 @pytest.mark.parametrize(
     "experiment_file",

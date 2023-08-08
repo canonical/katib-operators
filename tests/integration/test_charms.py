@@ -4,9 +4,6 @@
 import logging
 from pathlib import Path
 
-import lightkube
-import lightkube.generic_resource
-import lightkube.resources.core_v1
 import pytest
 import yaml
 from pytest_operator.plugin import OpsTest
