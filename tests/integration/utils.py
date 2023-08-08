@@ -1,3 +1,6 @@
+# Copyright 2023 Canonical Ltd.
+# See LICENSE file for licensing details.
+
 import tenacity
 import yaml
 from lightkube import ApiError
