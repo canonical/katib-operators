@@ -11,7 +11,7 @@ import pytest
 from pytest_operator.plugin import OpsTest
 from utils import (
     assert_deleted,
-    assert_exp_status_succeded,
+    assert_exp_status_succeeded,
     assert_get_experiment,
     create_experiment,
     delete_experiment,
@@ -63,7 +63,7 @@ async def test_kaitb_experiments(ops_test: OpsTest, experiment_file):
     )
 
     assert_get_experiment(logger, lightkube_client, exp_name, namespace)
-    assert_exp_status_succeded(logger, lightkube_client, exp_name, namespace)
+    assert_exp_status_succeeded(logger, lightkube_client, exp_name, namespace)
 
     delete_experiment(lightkube_client, exp_name, namespace)
     assert_deleted(logger, lightkube_client, exp_name, namespace)
