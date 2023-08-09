@@ -57,10 +57,10 @@ def assert_get_experiment(logger, client, name, namespace):
     stop=tenacity.stop_after_attempt(80),
     reraise=True,
 )
-def assert_exp_status_running(logger, client, name, namespace):
-    """Asserts the experiment status is Running.
+def assert_exp_status_succeeded(logger, client, name, namespace):
+    """Asserts the experiment status is Succeeded.
     Retries multiple times using tenacity to allow time for the experiment
-    to change its status from None -> Created -> Running
+    to change its status from None -> Created -> Running -> Succeeded.
     """
     exp_status = client.get(EXPERIMENT.Status, name=name, namespace=namespace).status[
         "conditions"
@@ -68,31 +68,8 @@ def assert_exp_status_running(logger, client, name, namespace):
 
     logger.info(f"Experiment Status is {exp_status}")
 
-    # Check experiment is running
-    assert exp_status == "Running", f"{name} not running status = {exp_status})"
-
-
-@tenacity.retry(
-    wait=tenacity.wait_exponential(multiplier=2, min=1, max=15),
-    stop=tenacity.stop_after_attempt(80),
-    reraise=True,
-)
-def assert_trial_status_running(logger, client, experiment_name, namespace):
-    """Asserts the trials belonging to an experiment are Running.
-    Retries multiple times using tenacity to allow the trial
-    to be in Running state.
-    """
-    trials = client.list(
-        TRIAL,
-        namespace=namespace,
-        labels={"katib.kubeflow.org/experiment": experiment_name},
-    )
-    for trial in trials:
-        trial_status = trial.status["conditions"][-1]["type"]
-        logger.info(f"Trial Status is {trial_status}")
-        assert (
-            trial_status == "Running"
-        ), f"{trial.metadata.name} not running, status = {trial_status}"
+    # Check experiment is succeeded
+    assert exp_status == "Succeeded", f"{name} not Succeeded status = {exp_status})"
 
 
 @tenacity.retry(

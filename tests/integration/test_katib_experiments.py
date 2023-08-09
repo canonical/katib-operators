@@ -11,9 +11,8 @@ import pytest
 from pytest_operator.plugin import OpsTest
 from utils import (
     assert_deleted,
-    assert_exp_status_running,
+    assert_exp_status_succeded,
     assert_get_experiment,
-    assert_trial_status_running,
     create_experiment,
     delete_experiment,
 )
@@ -39,7 +38,7 @@ logger = logging.getLogger(__name__)
 async def test_kaitb_experiments(ops_test: OpsTest, experiment_file):
     """Test Katib Experiments.
 
-    Each experiment is created, running, and has running trials.
+    Create experiment and assert that it succeeded.
     At the end, experiment is deleted.
     NOTE: This test is re-using deployment created in test_deploy_katib_charms() in test_charms.py
     """
@@ -64,8 +63,7 @@ async def test_kaitb_experiments(ops_test: OpsTest, experiment_file):
     )
 
     assert_get_experiment(logger, lightkube_client, exp_name, namespace)
-    assert_exp_status_running(logger, lightkube_client, exp_name, namespace)
-    assert_trial_status_running(logger, lightkube_client, exp_name, namespace)
+    assert_exp_status_succeded(logger, lightkube_client, exp_name, namespace)
 
     delete_experiment(lightkube_client, exp_name, namespace)
     assert_deleted(logger, lightkube_client, exp_name, namespace)
