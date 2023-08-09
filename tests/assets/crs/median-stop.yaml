@@ -1,10 +1,7 @@
 ---
-# This is example with median stopping early stopping rule.
-# It has bad feasible space for learning rate to show more early stopped Trials.
 apiVersion: kubeflow.org/v1beta1
 kind: Experiment
 metadata:
-  namespace: kubeflow
   name: median-stop
 spec:
   objective:
@@ -54,7 +51,7 @@ spec:
           spec:
             containers:
               - name: training-container
-                image: docker.io/kubeflowkatib/mxnet-mnist:latest
+                image: docker.io/kubeflowkatib/mxnet-mnist:v0.15.0
                 command:
                   - "python3"
                   - "/opt/mxnet-mnist/mnist.py"
