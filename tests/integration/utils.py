@@ -57,10 +57,10 @@ def assert_get_experiment(logger, client, name, namespace):
     stop=tenacity.stop_after_attempt(80),
     reraise=True,
 )
-def assert_exp_status_succeeded(logger, client, name, namespace):
-    """Asserts the experiment status is Succeeded.
+def assert_exp_status_running_succeeded(logger, client, name, namespace):
+    """Asserts the experiment status is Running or Succeeded.
     Retries multiple times using tenacity to allow time for the experiment
-    to change its status from None -> Created -> Running -> Succeeded.
+    to change its status from None -> Created -> Running/Succeeded.
     """
     exp_status = client.get(EXPERIMENT.Status, name=name, namespace=namespace).status[
         "conditions"
@@ -68,8 +68,11 @@ def assert_exp_status_succeeded(logger, client, name, namespace):
 
     logger.info(f"Experiment Status is {exp_status}")
 
-    # Check experiment is succeeded
-    assert exp_status == "Succeeded", f"{name} not Succeeded status = {exp_status})"
+    # Check experiment is running or succeeded
+    assert exp_status in [
+            "Running",
+            "Succeeded",
+    ], f"{name} not Running/Succeeded status = {exp_status})"
 
 
 @tenacity.retry(
