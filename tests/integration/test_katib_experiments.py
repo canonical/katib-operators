@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
         "tests/assets/crs/bayesian-optimization.yaml",
         "tests/assets/crs/cmaes.yaml",
         "tests/assets/crs/darts-cpu.yaml",
-        "tests/assets/crs/enas-cpu.yaml"
+        "tests/assets/crs/enas-cpu.yaml",
         "tests/assets/crs/file-metrics-collector.yaml",
         "tests/assets/crs/grid-example.yaml",
         "tests/assets/crs/hyperband.yaml",
