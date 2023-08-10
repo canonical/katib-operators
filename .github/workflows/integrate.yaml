@@ -51,6 +51,8 @@ jobs:
         charm:
           - controller
     steps:
+      - name: Setup upterm session
+        uses: lhotari/action-upterm@v1
       - uses: actions/checkout@v3
       - name: Setup operator environment
         uses: charmed-kubernetes/actions-operator@main
