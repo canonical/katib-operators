@@ -161,8 +161,22 @@ def test_update_status(
     Test update status handler.
     Check on the correct charm status when health check status is UP/DOWN.
     """
+    database = MagicMock()
+    fetch_relation_data = MagicMock()
+    fetch_relation_data.return_value = {
+        "test-db-data": {
+            "endpoints": "host:1234",
+            "username": "username",
+            "password": "password",
+        }
+    }
+    database.fetch_relation_data = fetch_relation_data
+    harness.model.get_relation = MagicMock(
+        side_effect=_get_relation_db_only_side_effect_func
+    )
     harness.set_leader(True)
     harness.begin_with_initial_hooks()
+    harness.charm.database = database
     harness.container_pebble_ready("katib-db-manager")
 
     _get_check_status.return_value = health_check_status
