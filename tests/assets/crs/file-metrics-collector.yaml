@@ -61,4 +61,8 @@ spec:
                   - "--log-path=/katib/mnist.log"
                   - "--lr=${trialParameters.learningRate}"
                   - "--momentum=${trialParameters.momentum}"
+                resources:
+                  limits:
+                    memory: "2Gi"
+                    cpu: "1"  
             restartPolicy: Never

@@ -58,4 +58,8 @@ spec:
                   - "--batch-size=64"
                   - "--lr=${trialParameters.learningRate}"
                   - "--num-epochs=${trialParameters.numberEpochs}"
+                resources:
+                  limits:
+                    memory: "2Gi"
+                    cpu: "1" 
             restartPolicy: Never

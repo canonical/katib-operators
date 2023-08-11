@@ -49,4 +49,8 @@ spec:
                   - "--epochs=20"
                   - "--lr=${trialParameters.learningRate}"
                   - "--checkpoint=/var/log/katib/checkpoints/"
+                resources:
+                  limits:
+                    memory: "2Gi"
+                    cpu: "1" 
             restartPolicy: Never

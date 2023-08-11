@@ -4,8 +4,8 @@ kind: Experiment
 metadata:
   name: hyperband
 spec:
-  parallelTrialCount: 2
-  maxTrialCount: 2
+  parallelTrialCount: 1
+  maxTrialCount: 1
   objective:
     type: maximize
     goal: 0.99
@@ -21,7 +21,7 @@ spec:
         value: "2"
       - name: "r_l"
         value: "2"
-  maxFailedTrialCount: 2
+  maxFailedTrialCount: 1
   parameters:
     - name: lr
       parameterType: double
@@ -77,4 +77,8 @@ spec:
                   - "--num-layers=${trialParameters.numberLayers}"
                   - "--optimizer=${trialParameters.optimizer}"
                   - "--num-epochs=${trialParameters.numberEpochs}"
+                resources:
+                  limits:
+                    memory: "2Gi"
+                    cpu: "1" 
             restartPolicy: Never

@@ -2,7 +2,7 @@
 apiVersion: kubeflow.org/v1beta1
 kind: Experiment
 metadata:
-  name: bayesian-optimization-annot
+  name: bayesian-optimization
 spec:
   objective:
     type: maximize
@@ -64,6 +64,10 @@ spec:
                   - "--lr=${trialParameters.learningRate}"
                   - "--num-layers=${trialParameters.numberLayers}"
                   - "--optimizer=${trialParameters.optimizer}"
+                resources:
+                  limits:
+                    memory: "2Gi"
+                    cpu: "1"
             restartPolicy: Never
           metadata:
             annotations:

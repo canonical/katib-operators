@@ -66,4 +66,8 @@ spec:
                   - --algorithm-settings="${trialParameters.algorithmSettings}"
                   - --search-space="${trialParameters.searchSpace}"
                   - --num-layers="${trialParameters.numberLayers}"
+                resources:
+                  limits:
+                    memory: "2Gi"
+                    cpu: "1"    
             restartPolicy: Never

@@ -137,4 +137,8 @@ spec:
                   - --num_epochs=1
                   - --architecture="${trialParameters.neuralNetworkArchitecture}"
                   - --nn_config="${trialParameters.neuralNetworkConfig}"
+                resources:
+                  limits:
+                    memory: "2Gi"
+                    cpu: "1"    
             restartPolicy: Never
