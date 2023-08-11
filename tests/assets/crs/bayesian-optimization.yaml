@@ -69,6 +69,3 @@ spec:
                     memory: "2Gi"
                     cpu: "1"
             restartPolicy: Never
-          metadata:
-            annotations:
-              sidecar.istio.io/inject: "false"
