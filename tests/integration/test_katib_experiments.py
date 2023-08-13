@@ -35,7 +35,7 @@ logger = logging.getLogger(__name__)
         "tests/assets/crs/simple-pbt.yaml",
     ],
 )
-async def test_kaitb_experiments(ops_test: OpsTest, experiment_file):
+async def test_katib_experiments(ops_test: OpsTest, experiment_file):
     """Test Katib Experiments.
 
     Create experiment and assert that it is Running or Succeeded.
