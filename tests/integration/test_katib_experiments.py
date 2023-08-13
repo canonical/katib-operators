@@ -12,7 +12,7 @@ from pytest_operator.plugin import OpsTest
 from utils import (
     assert_deleted,
     assert_exp_status_running_succeeded,
-    assert_get_experiment,
+    assert_experiment_exists,
     create_experiment,
     delete_experiment,
 )
@@ -62,7 +62,7 @@ async def test_katib_experiments(ops_test: OpsTest, experiment_file):
         client=lightkube_client, exp_path=experiment_file, namespace=namespace
     )
 
-    assert_get_experiment(lightkube_client, exp_name, namespace)
+    assert_experiment_exists(lightkube_client, exp_name, namespace)
     assert_exp_status_running_succeeded(logger, lightkube_client, exp_name, namespace)
 
     delete_experiment(lightkube_client, exp_name, namespace)

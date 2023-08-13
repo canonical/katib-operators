@@ -42,7 +42,7 @@ def delete_experiment(client, name, namespace):
     stop=tenacity.stop_after_delay(30),
     reraise=True,
 )
-def assert_get_experiment(client, name, namespace):
+def assert_experiment_exists(client, name, namespace):
     """Asserts on the presence of the experiment in the cluster.
     Retries multiple times using tenacity to allow time for the experiment
     to be created.
