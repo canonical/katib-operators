@@ -49,7 +49,7 @@ def assert_experiment_exists(client, name, namespace):
     """
     exp = client.get(EXPERIMENT, name=name, namespace=namespace)
 
-    assert exp is not None, f"{name} does not exist"
+    assert exp is not None, f"Experiment {name} does not exist"
 
 
 @tenacity.retry(
