@@ -1,3 +1,7 @@
+# Source: katib/examples/v1beta1/hp-tuning/grid.yaml
+# This example is slightly modified from upstream to consume less resources.
+# There's a `modified` comment where we diverge from upstream.
+# When updating this file, make sure to keep those modifications.
 ---
 apiVersion: kubeflow.org/v1beta1
 kind: Experiment
@@ -19,9 +23,9 @@ spec:
         value: "1"
       - name: start_step
         value: "2"
-  parallelTrialCount: 1
-  maxTrialCount: 1
-  maxFailedTrialCount: 1
+  parallelTrialCount: 1  # modified
+  maxTrialCount: 1  # modified
+  maxFailedTrialCount: 1  # modified
   parameters:
     - name: lr
       parameterType: double
@@ -58,8 +62,8 @@ spec:
                   - "--batch-size=64"
                   - "--lr=${trialParameters.learningRate}"
                   - "--num-epochs=${trialParameters.numberEpochs}"
-                resources:
-                  limits:
-                    memory: "2Gi"
-                    cpu: "1" 
+                resources:  # modified
+                  limits:  # modified
+                    memory: "2Gi"  # modified
+                    cpu: "1"  # modified
             restartPolicy: Never

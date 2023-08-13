@@ -1,12 +1,16 @@
+# Source: katib/examples/v1beta1/hp-tuning/grid.yaml
+# This example is slightly modified from upstream to consume less resources.
+# There's a `modified` comment where we diverge from upstream.
+# When updating this file, make sure to keep those modifications.
 ---
 apiVersion: kubeflow.org/v1beta1
 kind: Experiment
 metadata:
   name: simple-pbt
 spec:
-  maxTrialCount: 1
-  parallelTrialCount: 1
-  maxFailedTrialCount: 1
+  maxTrialCount: 1  # modified
+  parallelTrialCount: 1  # modified
+  maxFailedTrialCount: 1  # modified
   resumePolicy: FromVolume
   objective:
     type: maximize
@@ -49,8 +53,8 @@ spec:
                   - "--epochs=20"
                   - "--lr=${trialParameters.learningRate}"
                   - "--checkpoint=/var/log/katib/checkpoints/"
-                resources:
-                  limits:
-                    memory: "2Gi"
-                    cpu: "1" 
+                resources:  # modified
+                  limits:  # modified
+                    memory: "2Gi"  # modified
+                    cpu: "1"  # modified
             restartPolicy: Never

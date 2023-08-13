@@ -1,3 +1,7 @@
+# Source: katib/examples/v1beta1/nas/darts-cpu.yaml
+# This example is slightly modified from upstream to consume less resources.
+# There's a `modified` comment where we diverge from upstream.
+# When updating this file, make sure to keep those modifications.
 ---
 apiVersion: kubeflow.org/v1beta1
 kind: Experiment
@@ -66,8 +70,8 @@ spec:
                   - --algorithm-settings="${trialParameters.algorithmSettings}"
                   - --search-space="${trialParameters.searchSpace}"
                   - --num-layers="${trialParameters.numberLayers}"
-                resources:
-                  limits:
-                    memory: "2Gi"
-                    cpu: "1"    
+                resources:  # modified
+                  limits: # modified
+                    memory: "2Gi" # modified
+                    cpu: "1"  # modified
             restartPolicy: Never
