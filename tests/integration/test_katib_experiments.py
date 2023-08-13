@@ -62,7 +62,7 @@ async def test_katib_experiments(ops_test: OpsTest, experiment_file):
         client=lightkube_client, exp_path=experiment_file, namespace=namespace
     )
 
-    assert_get_experiment(logger, lightkube_client, exp_name, namespace)
+    assert_get_experiment(lightkube_client, exp_name, namespace)
     assert_exp_status_running_succeeded(logger, lightkube_client, exp_name, namespace)
 
     delete_experiment(lightkube_client, exp_name, namespace)
