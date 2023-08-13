@@ -44,12 +44,17 @@ def delete_experiment(client, name, namespace):
 )
 def assert_experiment_exists(client, name, namespace):
     """Asserts on the presence of the experiment in the cluster.
+
     Retries multiple times using tenacity to allow time for the experiment
     to be created.
     """
-    exp = client.get(EXPERIMENT, name=name, namespace=namespace)
-
-    assert exp is not None, f"Experiment {name} does not exist"
+    try:
+        client.get(EXPERIMENT, name=name, namespace=namespace)
+    except ApiError:
+        raise AssertionError(
+            f"Waited too long to get experiment. \
+            Experiment {name} in namespace {namespace} does not exist when it should."
+        )
 
 
 @tenacity.retry(
@@ -57,22 +62,28 @@ def assert_experiment_exists(client, name, namespace):
     stop=tenacity.stop_after_attempt(80),
     reraise=True,
 )
-def assert_exp_status_running_succeeded(logger, client, name, namespace):
+def assert_experiment_status_running_succeeded(logger, client, name, namespace):
     """Asserts the experiment status is Running or Succeeded.
+
     Retries multiple times using tenacity to allow time for the experiment
     to change its status from None -> Created -> Running/Succeeded.
     """
-    exp_status = client.get(EXPERIMENT.Status, name=name, namespace=namespace).status[
-        "conditions"
-    ][-1]["type"]
+    try:
+        experiment_status = client.get(EXPERIMENT.Status, name=name, namespace=namespace).status[
+            "conditions"
+        ][-1]["type"]
+    except Exception as e:  # TODO: make the exception more specific
+        raise AssertionError(
+            f"Unable to get the status of Experiment {name} in Namespace {namespace}. Error: {e}"
+        )
 
-    logger.info(f"Experiment Status is {exp_status}")
+    logger.info(f"Experiment Status is {experiment_status}")
 
     # Check experiment is running or succeeded
-    assert exp_status in [
-            "Running",
-            "Succeeded",
-    ], f"{name} not Running/Succeeded status = {exp_status})"
+    assert experiment_status in [
+        "Running",
+        "Succeeded",
+    ], f"Experiment {name} not in Running/Succeeded (status = {experiment_status})"
 
 
 @tenacity.retry(
@@ -80,15 +91,18 @@ def assert_exp_status_running_succeeded(logger, client, name, namespace):
     stop=tenacity.stop_after_attempt(10),
     reraise=True,
 )
-def assert_deleted(logger, client, experiment_name, namespace):
-    """Test for deleted resource. Retries multiple times to allow experiment to be deleted."""
-    logger.info(f"Waiting for {EXPERIMENT}/{experiment_name} to be deleted.")
+def assert_experiment_deleted(logger, client, experiment_name, namespace):
+    """Assert that the Katib experiment is deleted.
+
+    Retries multiple times to allow for the experiment to be deleted.
+    """
+    logger.info(f"Waiting for Experiment/{experiment_name} to be deleted.")
     deleted = False
     try:
         client.get(EXPERIMENT, experiment_name, namespace=namespace)
     except ApiError as error:
-        logger.info(f"Not found {EXPERIMENT}/{experiment_name}. Status {error.status.code} ")
+        logger.info(f"Not found Experiment/{experiment_name}. Status {error.status.code} ")
         if error.status.code == 404:
             deleted = True
 
-    assert deleted, f"Waited too long for {EXPERIMENT}/{experiment_name} to be deleted!"
+    assert deleted, f"Waited too long for Experiment/{experiment_name} to be deleted!"

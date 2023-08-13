@@ -10,9 +10,9 @@ import lightkube
 import pytest
 from pytest_operator.plugin import OpsTest
 from utils import (
-    assert_deleted,
-    assert_exp_status_running_succeeded,
+    assert_experiment_deleted,
     assert_experiment_exists,
+    assert_experiment_status_running_succeeded,
     create_experiment,
     delete_experiment,
 )
@@ -63,10 +63,10 @@ async def test_katib_experiments(ops_test: OpsTest, experiment_file):
     )
 
     assert_experiment_exists(lightkube_client, exp_name, namespace)
-    assert_exp_status_running_succeeded(logger, lightkube_client, exp_name, namespace)
+    assert_experiment_status_running_succeeded(logger, lightkube_client, exp_name, namespace)
 
     delete_experiment(lightkube_client, exp_name, namespace)
-    assert_deleted(logger, lightkube_client, exp_name, namespace)
+    assert_experiment_deleted(logger, lightkube_client, exp_name, namespace)
 
     # Wait for applications to settle
     await ops_test.model.wait_for_idle(
