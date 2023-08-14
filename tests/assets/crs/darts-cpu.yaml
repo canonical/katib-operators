@@ -71,7 +71,7 @@ spec:
                   - --search-space="${trialParameters.searchSpace}"
                   - --num-layers="${trialParameters.numberLayers}"
                 resources:  # modified
-                  limits: # modified
-                    memory: "2Gi" # modified
+                  limits:  # modified
+                    memory: "2Gi"  # modified
                     cpu: "1"  # modified
             restartPolicy: Never

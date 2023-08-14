@@ -19,7 +19,7 @@ spec:
     algorithmSettings:
       - name: "restart_strategy"
         value: "ipop"
-  parallelTrialCount: 1 # modified
+  parallelTrialCount: 1  # modified
   maxTrialCount: 1  # modified
   maxFailedTrialCount: 1  # modified
   parameters:
@@ -69,7 +69,7 @@ spec:
                   - "--num-layers=${trialParameters.numberLayers}"
                   - "--optimizer=${trialParameters.optimizer}"
                 resources:  # modified
-                  limits: # modified
-                    memory: "2Gi" # modified
+                  limits:  # modified
+                    memory: "2Gi"  # modified
                     cpu: "1"  # modified
             restartPolicy: Never

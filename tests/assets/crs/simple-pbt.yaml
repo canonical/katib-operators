@@ -1,4 +1,4 @@
-# Source: katib/examples/v1beta1/hp-tuning/grid.yaml
+# Source: katib/examples/v1beta1/hp-tuning/simple-pbt.yaml
 # This example is slightly modified from upstream to consume less resources.
 # There's a `modified` comment where we diverge from upstream.
 # When updating this file, make sure to keep those modifications.

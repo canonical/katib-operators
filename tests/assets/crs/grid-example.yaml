@@ -16,7 +16,7 @@ spec:
       - Train-accuracy
   algorithm:
     algorithmName: grid
-  parallelTrialCount: 1 # modified
+  parallelTrialCount: 1  # modified
   maxTrialCount: 1  # modified
   maxFailedTrialCount: 1  # modified
   parameters:
@@ -67,7 +67,7 @@ spec:
                   - "--num-layers=${trialParameters.numberLayers}"
                   - "--optimizer=${trialParameters.optimizer}"
                 resources:  # modified
-                  limits: # modified
-                    memory: "2Gi" # modified
+                  limits:  # modified
+                    memory: "2Gi"  # modified
                     cpu: "1"  # modified
             restartPolicy: Never

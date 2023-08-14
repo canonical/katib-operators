@@ -142,7 +142,7 @@ spec:
                   - --architecture="${trialParameters.neuralNetworkArchitecture}"
                   - --nn_config="${trialParameters.neuralNetworkConfig}"
                 resources:  # modified
-                  limits: # modified
-                    memory: "2Gi" # modified
+                  limits:  # modified
+                    memory: "2Gi"  # modified
                     cpu: "1"  # modified
             restartPolicy: Never
