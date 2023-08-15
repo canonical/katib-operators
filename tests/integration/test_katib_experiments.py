@@ -5,7 +5,6 @@
 """
 
 import glob
-import logging
 
 import lightkube
 import pytest
@@ -17,8 +16,6 @@ from utils import (
     create_experiment,
     delete_experiment,
 )
-
-logger = logging.getLogger(__name__)
 
 
 @pytest.mark.parametrize(
@@ -53,10 +50,10 @@ async def test_katib_experiments(ops_test: OpsTest, experiment_file):
     )
 
     assert_experiment_exists(lightkube_client, exp_name, namespace)
-    assert_experiment_status_running_succeeded(logger, lightkube_client, exp_name, namespace)
+    assert_experiment_status_running_succeeded(lightkube_client, exp_name, namespace)
 
     delete_experiment(lightkube_client, exp_name, namespace)
-    assert_experiment_deleted(logger, lightkube_client, exp_name, namespace)
+    assert_experiment_deleted(lightkube_client, exp_name, namespace)
 
     # Wait for applications to settle
     await ops_test.model.wait_for_idle(

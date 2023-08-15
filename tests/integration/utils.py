@@ -1,10 +1,14 @@
 # Copyright 2023 Canonical Ltd.
 # See LICENSE file for licensing details.
 
+import logging
+
 import tenacity
 import yaml
 from lightkube import ApiError
 from lightkube.generic_resource import create_namespaced_resource
+
+LOGGER = logging.getLogger(__name__)
 
 EXPERIMENT = create_namespaced_resource(
     group="kubeflow.org",
@@ -62,12 +66,15 @@ def assert_experiment_exists(client, name, namespace):
     stop=tenacity.stop_after_attempt(80),
     reraise=True,
 )
-def assert_experiment_status_running_succeeded(logger, client, name, namespace):
+def assert_experiment_status_running_succeeded(
+    client, name, namespace, logger: logging.Logger = None
+):
     """Asserts the experiment status is Running or Succeeded.
 
     Retries multiple times using tenacity to allow time for the experiment
     to change its status from None -> Created -> Running/Succeeded.
     """
+    logger = logger or LOGGER
     try:
         experiment_status = client.get(EXPERIMENT.Status, name=name, namespace=namespace).status[
             "conditions"
@@ -91,11 +98,12 @@ def assert_experiment_status_running_succeeded(logger, client, name, namespace):
     stop=tenacity.stop_after_attempt(10),
     reraise=True,
 )
-def assert_experiment_deleted(logger, client, experiment_name, namespace):
+def assert_experiment_deleted(client, experiment_name, namespace, logger: logging.Logger = None):
     """Assert that the Katib experiment is deleted.
 
     Retries multiple times to allow for the experiment to be deleted.
     """
+    logger = logger or LOGGER
     logger.info(f"Waiting for Experiment/{experiment_name} to be deleted.")
     deleted = False
     try:
