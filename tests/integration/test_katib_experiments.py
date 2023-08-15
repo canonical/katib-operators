@@ -4,6 +4,7 @@
 """Integration tests for Katib Experiments.
 """
 
+import glob
 import logging
 
 import lightkube
@@ -22,18 +23,7 @@ logger = logging.getLogger(__name__)
 
 @pytest.mark.parametrize(
     "experiment_file",
-    [
-        "tests/assets/crs/bayesian-optimization.yaml",
-        "tests/assets/crs/cmaes.yaml",
-        "tests/assets/crs/darts-cpu.yaml",
-        "tests/assets/crs/enas-cpu.yaml",
-        "tests/assets/crs/file-metrics-collector.yaml",
-        "tests/assets/crs/grid-example.yaml",
-        "tests/assets/crs/hyperband.yaml",
-        "tests/assets/crs/median-stop.yaml",
-        "tests/assets/crs/random.yaml",
-        "tests/assets/crs/simple-pbt.yaml",
-    ],
+    glob.glob("tests/assets/crs/*.yaml"),
 )
 async def test_katib_experiments(ops_test: OpsTest, experiment_file):
     """Test Katib Experiments.
