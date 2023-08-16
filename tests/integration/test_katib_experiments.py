@@ -1,8 +1,7 @@
 # Copyright 2023 Canonical Ltd.
 # See LICENSE file for licensing details.
 
-"""Integration tests for Katib Experiments.
-"""
+"""Integration tests for Katib Experiments."""
 
 import glob
 from pathlib import Path
@@ -19,6 +18,7 @@ from utils import (
     create_experiment,
     delete_experiment,
 )
+
 PROFILE_TEMPLATE_FILE = Path("./tests/assets/crs/profile.yaml.j2")
 NAMESPACE = "test-kubeflow"
 PROFILE_RESOURCE = create_global_resource(
@@ -28,12 +28,14 @@ PROFILE_RESOURCE = create_global_resource(
     plural="profiles",
 )
 
+
 @pytest.fixture(scope="module")
 def lightkube_client() -> lightkube.Client:
-    """Returns a lightkube Client that can talk to the K8s API."""
+    """Return a lightkube Client that can talk to the K8s API."""
     client = lightkube.Client(field_manager="katib-operators")
     load_in_cluster_generic_resources(client)
     return client
+
 
 @pytest.fixture(scope="module")
 def create_profile(lightkube_client):
@@ -57,14 +59,15 @@ def create_profile(lightkube_client):
     "experiment_file",
     glob.glob("tests/assets/crs/experiments/*.yaml"),
 )
-async def test_katib_experiments(create_profile, lightkube_client, ops_test: OpsTest, experiment_file):
-    """Test Katib Experiments.
+async def test_katib_experiments(
+    create_profile, lightkube_client, ops_test: OpsTest, experiment_file
+):
+    """Test Katib experiments.
 
-    Create experiment and assert that it is Running or Succeeded.
-    At the end, experiment is deleted.
-    NOTE: This test is re-using deployment created in test_deploy_katib_charms() in test_charms.py
+    Create an experiment and assert that it is Running or Succeeded. Delete the experiment after it
+    has completed.
+    NOTE: This test is re-using the deployment created in test_charms::test_deploy_katib_charms().
     """
-
     exp_name = create_experiment(
         client=lightkube_client, exp_path=experiment_file, namespace=NAMESPACE
     )
@@ -75,8 +78,8 @@ async def test_katib_experiments(create_profile, lightkube_client, ops_test: Ops
     delete_experiment(lightkube_client, exp_name, NAMESPACE)
     assert_experiment_deleted(lightkube_client, exp_name, NAMESPACE)
 
-    # Wait for applications to settle
-    # Charms are only expected to fail here due to lack of resources.
+    # Applications can fail due to lack of resources when running heavy workloads on the CI workers
+    # FIXME: Add link to issue here.
     await ops_test.model.wait_for_idle(
         status="active",
         raise_on_blocked=True,

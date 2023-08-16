@@ -56,8 +56,8 @@ def assert_experiment_exists(client, name, namespace):
     except ApiError as error:
         if error.status.code == 404:
             raise AssertionError(
-                f"Waited too long to get experiment. \
-                Experiment {name} in namespace {namespace} does not exist when it should."
+                f"Waited too long for experiment to be created: experiment {name} in namespace"
+                f" {namespace} does not exist."
             )
         raise error
 
@@ -72,21 +72,21 @@ def assert_experiment_status_running_succeeded(
 ):
     """Assert that the experiment status is Running or Succeeded.
 
-    Retries multiple times using tenacity to allow time for the experiment
-    to change its status from None -> Created -> Running/Succeeded.
+    Retries multiple times using tenacity to allow time for the experiment to change its status
+    from None -> Created -> Running/Succeeded.
     """
     logger = logger or LOGGER
     experiment_status = client.get(EXPERIMENT.Status, name=name, namespace=namespace).status[
-            "conditions"
-        ][-1]["type"]
+        "conditions"
+    ][-1]["type"]
 
-    logger.info(f"Experiment Status is {experiment_status}")
+    logger.info(f"Experiment status is {experiment_status}")
 
     # Check experiment is running or succeeded
     assert experiment_status in [
         "Running",
         "Succeeded",
-    ], f"Experiment {name} not in Running/Succeeded (status = {experiment_status})"
+    ], f"Experiment {name} not in Running/Succeeded state (status = {experiment_status})"
 
 
 @tenacity.retry(
@@ -100,13 +100,14 @@ def assert_experiment_deleted(client, experiment_name, namespace, logger: loggin
     Retries multiple times to allow for the experiment to be deleted.
     """
     logger = logger or LOGGER
-    logger.info(f"Waiting for Experiment/{experiment_name} to be deleted.")
+    logger.info(f"Waiting for Experiment {experiment_name} to be deleted.")
     deleted = False
     try:
         client.get(EXPERIMENT, experiment_name, namespace=namespace)
     except ApiError as error:
-        logger.info(f"Unable to get Experiment/{experiment_name}. Status {error.status.code} ")
-        if error.status.code == 404:
-            deleted = True
+        logger.info(f"Unable to get Experiment {experiment_name} (status: {error.status.code})")
+        if error.status.code != 404:
+            raise
+        deleted = True
 
-    assert deleted, f"Waited too long for Experiment/{experiment_name} to be deleted!"
+    assert deleted, f"Waited too long for Experiment {experiment_name} to be deleted!"
