@@ -47,18 +47,19 @@ def delete_experiment(client, name, namespace):
     reraise=True,
 )
 def assert_experiment_exists(client, name, namespace):
-    """Asserts on the presence of the experiment in the cluster.
+    """Assert that the Katib experiment exists.
 
-    Retries multiple times using tenacity to allow time for the experiment
-    to be created.
+    Retries multiple times using tenacity to allow time for the Katib experiment to be created.
     """
     try:
         client.get(EXPERIMENT, name=name, namespace=namespace)
-    except ApiError:
-        raise AssertionError(
-            f"Waited too long to get experiment. \
-            Experiment {name} in namespace {namespace} does not exist when it should."
-        )
+    except ApiError as error:
+        if error.status.code == 404:
+            raise AssertionError(
+                f"Waited too long to get experiment. \
+                Experiment {name} in namespace {namespace} does not exist when it should."
+            )
+        raise error
 
 
 @tenacity.retry(
@@ -69,20 +70,15 @@ def assert_experiment_exists(client, name, namespace):
 def assert_experiment_status_running_succeeded(
     client, name, namespace, logger: logging.Logger = None
 ):
-    """Asserts the experiment status is Running or Succeeded.
+    """Assert that the experiment status is Running or Succeeded.
 
     Retries multiple times using tenacity to allow time for the experiment
     to change its status from None -> Created -> Running/Succeeded.
     """
     logger = logger or LOGGER
-    try:
-        experiment_status = client.get(EXPERIMENT.Status, name=name, namespace=namespace).status[
+    experiment_status = client.get(EXPERIMENT.Status, name=name, namespace=namespace).status[
             "conditions"
         ][-1]["type"]
-    except Exception as e:  # TODO: make the exception more specific
-        raise AssertionError(
-            f"Unable to get the status of Experiment {name} in Namespace {namespace}. Error: {e}"
-        )
 
     logger.info(f"Experiment Status is {experiment_status}")
 
@@ -109,7 +105,7 @@ def assert_experiment_deleted(client, experiment_name, namespace, logger: loggin
     try:
         client.get(EXPERIMENT, experiment_name, namespace=namespace)
     except ApiError as error:
-        logger.info(f"Not found Experiment/{experiment_name}. Status {error.status.code} ")
+        logger.info(f"Unable to get Experiment/{experiment_name}. Status {error.status.code} ")
         if error.status.code == 404:
             deleted = True
 
