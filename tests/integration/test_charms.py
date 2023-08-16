@@ -61,6 +61,13 @@ async def test_deploy_katib_charms(ops_test: OpsTest):
         timeout=90 * 10,
     )
 
+    # Deploy charms responsible for CRDs creation
+    await ops_test.model.deploy(
+        entity_url="kubeflow-profiles",
+        channel="latest/edge",
+        trust=True,
+    )
+
     # Wait for everything to deploy
     await ops_test.model.wait_for_idle(
         status="active",
