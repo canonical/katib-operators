@@ -62,7 +62,7 @@ jobs:
       fail-fast: false
       matrix:
         charm:
-          - controller
+          - katib-controller
     steps:
       - uses: actions/checkout@v3
       - name: Setup operator environment
