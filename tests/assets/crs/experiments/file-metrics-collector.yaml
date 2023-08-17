@@ -1,0 +1,72 @@
+# Source: katib/examples/v1beta1/metrics-collector/file-metrics-collector.yaml
+# This example is slightly modified from upstream to consume less resources.
+# There's a `modified` comment where we diverge from upstream.
+# When updating this file, make sure to keep those modifications.
+---
+apiVersion: kubeflow.org/v1beta1
+kind: Experiment
+metadata:
+  name: file-metrics-collector
+spec:
+  objective:
+    type: maximize
+    goal: 0.99
+    objectiveMetricName: accuracy
+    additionalMetricNames:
+      - loss
+  metricsCollectorSpec:
+    source:
+      filter:
+        metricsFormat:
+          - "{metricName: ([\\w|-]+), metricValue: ((-?\\d+)(\\.\\d+)?)}"
+      fileSystemPath:
+        path: "/katib/mnist.log"
+        kind: File
+    collector:
+      kind: File
+  algorithm:
+    algorithmName: random
+  parallelTrialCount: 1  # modified
+  maxTrialCount: 1  # modified
+  maxFailedTrialCount: 1  # modified
+  parameters:
+    - name: lr
+      parameterType: double
+      feasibleSpace:
+        min: "0.01"
+        max: "0.03"
+    - name: momentum
+      parameterType: double
+      feasibleSpace:
+        min: "0.3"
+        max: "0.7"
+  trialTemplate:
+    primaryContainerName: training-container
+    trialParameters:
+      - name: learningRate
+        description: Learning rate for the training model
+        reference: lr
+      - name: momentum
+        description: Momentum for the training model
+        reference: momentum
+    trialSpec:
+      apiVersion: batch/v1
+      kind: Job
+      spec:
+        template:
+          spec:
+            containers:
+              - name: training-container
+                image: docker.io/kubeflowkatib/pytorch-mnist-cpu:v0.15.0
+                command:
+                  - "python3"
+                  - "/opt/pytorch-mnist/mnist.py"
+                  - "--epochs=1"
+                  - "--log-path=/katib/mnist.log"
+                  - "--lr=${trialParameters.learningRate}"
+                  - "--momentum=${trialParameters.momentum}"
+                resources:  # modified
+                  limits:  # modified
+                    memory: "2Gi"  # modified
+                    cpu: "1"  # modified
+            restartPolicy: Never

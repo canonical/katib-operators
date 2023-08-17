@@ -1,0 +1,73 @@
+# Source: katib/examples/v1beta1/hp-tuning/grid.yaml
+# This example is slightly modified from upstream to consume less resources.
+# There's a `modified` comment where we diverge from upstream.
+# When updating this file, make sure to keep those modifications.
+---
+apiVersion: kubeflow.org/v1beta1
+kind: Experiment
+metadata:
+  name: grid
+spec:
+  objective:
+    type: maximize
+    goal: 0.99
+    objectiveMetricName: Validation-accuracy
+    additionalMetricNames:
+      - Train-accuracy
+  algorithm:
+    algorithmName: grid
+  parallelTrialCount: 1  # modified
+  maxTrialCount: 1  # modified
+  maxFailedTrialCount: 1  # modified
+  parameters:
+    - name: lr
+      parameterType: double
+      feasibleSpace:
+        min: "0.001"
+        max: "0.01"
+        step: "0.001"
+    - name: num-layers
+      parameterType: int
+      feasibleSpace:
+        min: "2"
+        max: "5"
+    - name: optimizer
+      parameterType: categorical
+      feasibleSpace:
+        list:
+          - sgd
+          - adam
+          - ftrl
+  trialTemplate:
+    primaryContainerName: training-container
+    trialParameters:
+      - name: learningRate
+        description: Learning rate for the training model
+        reference: lr
+      - name: numberLayers
+        description: Number of training model layers
+        reference: num-layers
+      - name: optimizer
+        description: Training model optimizer (sdg, adam or ftrl)
+        reference: optimizer
+    trialSpec:
+      apiVersion: batch/v1
+      kind: Job
+      spec:
+        template:
+          spec:
+            containers:
+              - name: training-container
+                image: docker.io/kubeflowkatib/mxnet-mnist:v0.15.0
+                command:
+                  - "python3"
+                  - "/opt/mxnet-mnist/mnist.py"
+                  - "--batch-size=64"
+                  - "--lr=${trialParameters.learningRate}"
+                  - "--num-layers=${trialParameters.numberLayers}"
+                  - "--optimizer=${trialParameters.optimizer}"
+                resources:  # modified
+                  limits:  # modified
+                    memory: "2Gi"  # modified
+                    cpu: "1"  # modified
+            restartPolicy: Never

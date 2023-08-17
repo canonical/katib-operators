@@ -1,8 +1,12 @@
+# Source: katib/examples/v1beta1/hp-tuning/bayesian-optimization.yaml
+# This example is slightly modified from upstream to consume less resources. 
+# There's a `modified` comment where we diverge from upstream.
+# When updating this file, make sure to keep those modifications.
 ---
 apiVersion: kubeflow.org/v1beta1
 kind: Experiment
 metadata:
-  name: grid
+  name: bayesian-optimization
 spec:
   objective:
     type: maximize
@@ -11,17 +15,19 @@ spec:
     additionalMetricNames:
       - Train-accuracy
   algorithm:
-    algorithmName: grid
-  parallelTrialCount: 1
-  maxTrialCount: 1
-  maxFailedTrialCount: 1
+    algorithmName: bayesianoptimization
+    algorithmSettings:
+      - name: "random_state"
+        value: "10"
+  parallelTrialCount: 1  # modified
+  maxTrialCount: 1  # modified
+  maxFailedTrialCount: 1  # modified
   parameters:
     - name: lr
       parameterType: double
       feasibleSpace:
-        min: "0.001"
-        max: "0.01"
-        step: "0.001"
+        min: "0.01"
+        max: "0.03"
     - name: num-layers
       parameterType: int
       feasibleSpace:
@@ -54,7 +60,7 @@ spec:
           spec:
             containers:
               - name: training-container
-                image: docker.io/kubeflowkatib/mxnet-mnist:latest
+                image: docker.io/kubeflowkatib/mxnet-mnist:v0.15.0
                 command:
                   - "python3"
                   - "/opt/mxnet-mnist/mnist.py"
@@ -62,7 +68,8 @@ spec:
                   - "--lr=${trialParameters.learningRate}"
                   - "--num-layers=${trialParameters.numberLayers}"
                   - "--optimizer=${trialParameters.optimizer}"
+                resources:  # modified
+                  limits:  # modified
+                    memory: "2Gi"  # modified
+                    cpu: "1"  # modified
             restartPolicy: Never
-          metadata:
-            annotations:
-              sidecar.istio.io/inject: "false"

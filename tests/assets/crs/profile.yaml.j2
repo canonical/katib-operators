@@ -1,0 +1,11 @@
+# Copyright 2023 Canonical Ltd.
+# See LICENSE file for licensing details.
+
+apiVersion: kubeflow.org/v1
+kind: Profile
+metadata:
+  name: {{ namespace }}
+spec:
+  owner:
+    kind: User
+    name: {{ namespace }}@email.com

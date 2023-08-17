@@ -4,11 +4,7 @@
 import logging
 from pathlib import Path
 
-import lightkube
-import lightkube.generic_resource
-import lightkube.resources.core_v1
 import pytest
-import tenacity
 import yaml
 from pytest_operator.plugin import OpsTest
 
@@ -65,108 +61,16 @@ async def test_deploy_katib_charms(ops_test: OpsTest):
         timeout=90 * 10,
     )
 
+    # Deploy charms responsible for CRDs creation
+    await ops_test.model.deploy(
+        entity_url="kubeflow-profiles",
+        channel="latest/edge",
+        trust=True,
+    )
+
     # Wait for everything to deploy
     await ops_test.model.wait_for_idle(
         status="active",
         raise_on_blocked=True,
         timeout=360,
     )
-
-
-async def test_create_experiment(ops_test: OpsTest):
-    namespace = ops_test.model_name
-    lightkube_client = lightkube.Client()
-
-    # Add metrics collector injection enabled label to namespace
-    test_namespace = lightkube_client.get(
-        res=lightkube.resources.core_v1.Namespace, name=namespace
-    )
-    test_namespace.metadata.labels.update(
-        {"katib.kubeflow.org/metrics-collector-injection": "enabled"}
-    )
-    lightkube_client.patch(
-        res=lightkube.resources.core_v1.Namespace,
-        name=test_namespace.metadata.name,
-        obj=test_namespace,
-    )
-
-    # Create Experiment resource
-    exp_class = lightkube.generic_resource.create_namespaced_resource(
-        group="kubeflow.org",
-        version="v1beta1",
-        kind="experiment",
-        plural="experiments",
-        verbs=None,
-    )
-
-    # Create Trial resource
-    trial_class = lightkube.generic_resource.create_namespaced_resource(
-        group="kubeflow.org",
-        version="v1beta1",
-        kind="trial",
-        plural="trials",
-        verbs=None,
-    )
-
-    # Create Experiment instance
-    experiment_file = "examples/v1beta1/hp-tuning/grid-example.yaml"
-    with open(experiment_file) as f:
-        exp_object = exp_class(yaml.safe_load(f.read()))
-        lightkube_client.create(exp_object, namespace=namespace)
-
-    @tenacity.retry(
-        wait=tenacity.wait_exponential(multiplier=1, min=1, max=15),
-        stop=tenacity.stop_after_delay(30),
-        reraise=True,
-    )
-    def assert_get_experiment():
-        """Asserts on the presence of the experiment in the cluster.
-        Retries multiple times using tenacity to allow time for the experiment
-        to be created.
-        """
-        exp = lightkube_client.get(exp_class, name=exp_object.metadata.name, namespace=namespace)
-
-        assert exp is not None, f"{exp_object.metadata.name} does not exist"
-
-    @tenacity.retry(
-        wait=tenacity.wait_exponential(multiplier=2, min=1, max=30),
-        stop=tenacity.stop_after_attempt(10),
-        reraise=True,
-    )
-    def assert_exp_status_running():
-        """Asserts the experiment status is Running.
-        Retries multiple times using tenacity to allow time for the experiment
-        to change its status from None -> Created -> Running
-        """
-        exp_status = lightkube_client.get(
-            exp_class.Status, name=exp_object.metadata.name, namespace=namespace
-        ).status["conditions"][-1]["type"]
-
-        logger.info(f"Experiment Status is {exp_status}")
-
-        # Check experiment is running
-        assert (
-            exp_status == "Running"
-        ), f"{exp_object.metadata.name} not running status = {exp_status})"
-
-    @tenacity.retry(
-        wait=tenacity.wait_exponential(multiplier=2, min=1, max=15),
-        stop=tenacity.stop_after_attempt(10),
-        reraise=True,
-    )
-    def assert_trial_status_running():
-        """Asserts the trial status is Running.
-        Retries multiple times using tenacity to allow the trial
-        to be in Running state
-        """
-        trials = lightkube_client.list(trial_class, namespace=namespace)
-        trial = next(trials)
-        trial_status = trial.status["conditions"][-1]["type"]
-        logger.info(f"Trial Status is {trial_status}")
-        assert (
-            trial_status == "Running"
-        ), f"{trial.metadata.name} not running, status = {trial_status}"
-
-    assert_get_experiment()
-    assert_exp_status_running()
-    assert_trial_status_running()

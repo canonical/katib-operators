@@ -94,6 +94,20 @@ jobs:
     runs-on: ubuntu-20.04
 
     steps:
+    # Ideally we'd use self-hosted runners, but this effort is still not stable.
+    # This action will remove unused software (dotnet, haskell, android libs, codeql,
+    # and docker images) from the GH runner, which will liberate around 60 GB of storage
+    # distributed in 40GB for root and around 20 for a mnt point.
+      - name: Maximise GH runner space
+        uses: easimon/maximize-build-space@v7
+        with:
+          root-reserve-mb: 40960
+          remove-dotnet: 'true'
+          remove-haskell: 'true'
+          remove-android: 'true'
+          remove-codeql: 'true'
+          remove-docker-images: 'true'
+
       - name: Check out code
         uses: actions/checkout@v3
       - name: Setup operator environment
@@ -102,7 +116,7 @@ jobs:
           provider: microk8s
           channel: 1.24/stable
           juju-channel: 2.9/stable
-          microk8s-addons: "dns storage rbac metallb:10.64.140.43-10.64.140.49"
+          microk8s-addons: "dns storage rbac"
 
       - name: Run test
         run: |

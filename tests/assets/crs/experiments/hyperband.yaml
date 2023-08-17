@@ -1,8 +1,15 @@
+# Source: katib/examples/v1beta1/hp-tuning/hyperband.yaml
+# This example is slightly modified from upstream to consume less resources.
+# There's a `modified` comment where we diverge from upstream.
+# When updating this file, make sure to keep those modifications.
+---
 apiVersion: kubeflow.org/v1beta1
 kind: Experiment
 metadata:
-  name: random
+  name: hyperband
 spec:
+  parallelTrialCount: 2
+  maxTrialCount: 2
   objective:
     type: maximize
     goal: 0.99
@@ -10,10 +17,15 @@ spec:
     additionalMetricNames:
       - Train-accuracy
   algorithm:
-    algorithmName: random
-  parallelTrialCount: 3
-  maxTrialCount: 12
-  maxFailedTrialCount: 3
+    algorithmName: hyperband
+    algorithmSettings:
+      - name: "resource_name"
+        value: "num-epochs"
+      - name: "eta"
+        value: "2"
+      - name: "r_l"
+        value: "2"
+  maxFailedTrialCount: 2
   parameters:
     - name: lr
       parameterType: double
@@ -32,6 +44,11 @@ spec:
           - sgd
           - adam
           - ftrl
+    - name: num-epochs
+      parameterType: int
+      feasibleSpace:
+        min: "1"
+        max: "1"
   trialTemplate:
     primaryContainerName: training-container
     trialParameters:
@@ -44,6 +61,9 @@ spec:
       - name: optimizer
         description: Training model optimizer (sdg, adam or ftrl)
         reference: optimizer
+      - name: numberEpochs
+        description: Number of epochs to train the model
+        reference: num-epochs
     trialSpec:
       apiVersion: batch/v1
       kind: Job
@@ -52,12 +72,17 @@ spec:
           spec:
             containers:
               - name: training-container
-                image: docker.io/kubeflowkatib/mxnet-mnist:latest
+                image: docker.io/kubeflowkatib/mxnet-mnist:v0.15.0
                 command:
                   - "python3"
                   - "/opt/mxnet-mnist/mnist.py"
-                  - "--batch-size=64"
+                  - "--batch-size=32"
                   - "--lr=${trialParameters.learningRate}"
                   - "--num-layers=${trialParameters.numberLayers}"
                   - "--optimizer=${trialParameters.optimizer}"
+                  - "--num-epochs=${trialParameters.numberEpochs}"
+                resources:  # modified
+                  limits:  # modified
+                    memory: "2Gi"  # modified
+                    cpu: "1"  # modified
             restartPolicy: Never
