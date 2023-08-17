@@ -54,11 +54,10 @@ def assert_experiment_exists(client, name, namespace):
     try:
         client.get(EXPERIMENT, name=name, namespace=namespace)
     except ApiError as error:
-        if error.status.code == 404:
-            raise AssertionError(
-                f"Waited too long for experiment to be created: experiment {name} in namespace"
-                f" {namespace} does not exist."
-            )
+        assert error.status.code != 404, (
+            f"Waited too long for experiment to be created: experiment {name} in namespace"
+            f" {namespace} does not exist."
+        )
         raise error
 
 
