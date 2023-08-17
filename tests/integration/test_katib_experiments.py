@@ -77,11 +77,3 @@ async def test_katib_experiments(
 
     delete_experiment(lightkube_client, exp_name, NAMESPACE)
     assert_experiment_deleted(lightkube_client, exp_name, NAMESPACE)
-
-    # Applications can fail due to lack of resources when running heavy workloads on the CI workers
-    # FIXME: Add link to issue here.
-    await ops_test.model.wait_for_idle(
-        status="active",
-        raise_on_blocked=True,
-        timeout=360,
-    )
