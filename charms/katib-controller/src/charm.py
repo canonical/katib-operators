@@ -250,14 +250,7 @@ class Operator(CharmBase):
                         "name": "katib-controller",
                         "imageDetails": image_details,
                         "command": ["./katib-controller"],
-                        "args": [
-                            f"--webhook-port={self.model.config['webhook-port']}",
-                            "--trial-resources=Job.v1.batch",
-                            "--trial-resources=TFJob.v1.kubeflow.org",
-                            "--trial-resources=PyTorchJob.v1.kubeflow.org",
-                            "--trial-resources=MPIJob.v1.kubeflow.org",
-                            "--trial-resources=PipelineRun.v1beta1.tekton.dev",
-                        ],
+                        "args": ["--katib-config=/katib-config.yaml"],
                         "ports": [
                             {
                                 "name": "webhook",
@@ -278,6 +271,12 @@ class Operator(CharmBase):
                                     {"path": "tls.crt", "content": self._stored.cert},
                                     {"path": "tls.key", "content": self._stored.key},
                                 ],
+                            },
+                            {
+                                "name": "katib-config",
+                                "mountPath": "/katib-config.yaml",
+                                "subPath": "katib-config.yaml",
+                                "readOnly": "true"
                             }
                         ],
                     }
