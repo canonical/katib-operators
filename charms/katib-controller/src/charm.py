@@ -19,14 +19,14 @@ from ops.main import main
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, WaitingStatus
 
 DEFAULT_IMAGES = {
-    "default_trial_template": "docker.io/kubeflowkatib/mxnet-mnist:v0.15.0",
+    "default_trial_template": "docker.io/kubeflowkatib/mxnet-mnist:v0.16.0-rc.1",
     "early_stopping__medianstop": "docker.io/kubeflowkatib/earlystopping-medianstop:v0.16.0-rc.1",
-    "enas_cpu_template": "docker.io/kubeflowkatib/enas-cnn-cifar10-cpu:v0.15.0",
+    "enas_cpu_template": "docker.io/kubeflowkatib/enas-cnn-cifar10-cpu:v0.16.0-rc.1",
     "metrics_collector_sidecar__stdout": "docker.io/kubeflowkatib/file-metrics-collector:v0.16.0-rc.1",
     "metrics_collector_sidecar__file": "docker.io/kubeflowkatib/file-metrics-collector:v0.16.0-rc.1",
     "metrics_collector_sidecar__tensorflow_event": "docker.io/kubeflowkatib/tfevent-metrics-collector:v0.16.0-rc.1",  # noqa: E501
-    "pytorch_job_template__master": "docker.io/kubeflowkatib/pytorch-mnist-cpu:v0.15.0",
-    "pytorch_job_template__worker": "docker.io/kubeflowkatib/pytorch-mnist-cpu:v0.15.0",
+    "pytorch_job_template__master": "docker.io/kubeflowkatib/pytorch-mnist-cpu:v0.16.0-rc.1",
+    "pytorch_job_template__worker": "docker.io/kubeflowkatib/pytorch-mnist-cpu:v0.16.0-rc.1",
     "suggestion__random": "docker.io/kubeflowkatib/suggestion-hyperopt:v0.16.0-rc.1",
     "suggestion__tpe": "docker.io/kubeflowkatib/suggestion-hyperopt:v0.16.0-rc.1",
     "suggestion__grid": "docker.io/kubeflowkatib/suggestion-optuna:v0.16.0-rc.1",
