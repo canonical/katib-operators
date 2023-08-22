@@ -174,7 +174,7 @@ class Operator(CharmBase):
             self.custom_images = parse_images_config(self.model.config["custom_images"])
             self.images_context = self.get_images(DEFAULT_IMAGES, self.custom_images)
             self.katib_config_context = self.images_context
-            self.katib_config_context["webhookPort"] = self.model.config['webhook-port']
+            self.katib_config_context["webhookPort"] = self.model.config["webhook-port"]
             image_details = self._check_image_details()
         except CheckFailed as check_failed:
             self.model.unit.status = check_failed.status
@@ -285,8 +285,8 @@ class Operator(CharmBase):
                                 "name": "katib-config",
                                 "mountPath": "/katib-config.yaml",
                                 "subPath": "katib-config.yaml",
-                                "readOnly": "true"
-                            }
+                                "readOnly": "true",
+                            },
                         ],
                     }
                 ],
@@ -312,7 +312,9 @@ class Operator(CharmBase):
                 },
                 "configMaps": {
                     "katib-config": {
-                        "katib-config.yaml": render_template(f"src/templates/katib-config.yaml.j2", self.katib_config_context)
+                        "katib-config.yaml": render_template(
+                            f"src/templates/katib-config.yaml.j2", self.katib_config_context
+                        )
                     },
                     "trial-template": {
                         f
