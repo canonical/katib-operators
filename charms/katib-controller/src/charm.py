@@ -203,6 +203,7 @@ class Operator(CharmBase):
                                         "pods",
                                         "pods/log",
                                         "pods/status",
+                                        "secrets",
                                     ],
                                     "verbs": ["*"],
                                 },
@@ -240,6 +241,14 @@ class Operator(CharmBase):
                                         "mxjobs",
                                     ],
                                     "verbs": ["*"],
+                                },
+                                {
+                                    "apiGroups": ["admissionregistration.k8s.io"],
+                                    "resources": [
+                                        "validatingwebhookconfigurations",
+                                        "mutatingwebhookconfigurations",
+                                    ],
+                                    "verbs": ["get", "watch", "list", "patch"],
                                 },
                             ],
                         }
