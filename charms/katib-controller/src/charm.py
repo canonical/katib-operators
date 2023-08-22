@@ -22,8 +22,8 @@ DEFAULT_IMAGES = {
     "default_trial_template": "docker.io/kubeflowkatib/mxnet-mnist:v0.16.0-rc.1",
     "early_stopping__medianstop": "docker.io/kubeflowkatib/earlystopping-medianstop:v0.16.0-rc.1",
     "enas_cpu_template": "docker.io/kubeflowkatib/enas-cnn-cifar10-cpu:v0.16.0-rc.1",
-    "metrics_collector_sidecar__stdout": "docker.io/kubeflowkatib/file-metrics-collector:v0.16.0-rc.1",
-    "metrics_collector_sidecar__file": "docker.io/kubeflowkatib/file-metrics-collector:v0.16.0-rc.1",
+    "metrics_collector_sidecar__stdout": "docker.io/kubeflowkatib/file-metrics-collector:v0.16.0-rc.1",  # noqa: E501
+    "metrics_collector_sidecar__file": "docker.io/kubeflowkatib/file-metrics-collector:v0.16.0-rc.1",  # noqa: E501
     "metrics_collector_sidecar__tensorflow_event": "docker.io/kubeflowkatib/tfevent-metrics-collector:v0.16.0-rc.1",  # noqa: E501
     "pytorch_job_template__master": "docker.io/kubeflowkatib/pytorch-mnist-cpu:v0.16.0-rc.1",
     "pytorch_job_template__worker": "docker.io/kubeflowkatib/pytorch-mnist-cpu:v0.16.0-rc.1",
@@ -313,7 +313,7 @@ class Operator(CharmBase):
                 "configMaps": {
                     "katib-config": {
                         "katib-config.yaml": render_template(
-                            f"src/templates/katib-config.yaml.j2", self.katib_config_context
+                            "src/templates/katib-config.yaml.j2", self.katib_config_context
                         )
                     },
                     "trial-template": {
