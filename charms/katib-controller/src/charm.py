@@ -285,7 +285,6 @@ class Operator(CharmBase):
                                 "name": "katib-config",
                                 "mountPath": "/katib-config.yaml",
                                 "subPath": "katib-config.yaml",
-                                "readOnly": "true",
                             },
                         ],
                     }
