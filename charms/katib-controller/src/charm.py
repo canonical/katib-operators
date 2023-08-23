@@ -284,7 +284,15 @@ class Operator(CharmBase):
                             {
                                 "name": "katib-config",
                                 "mountPath": "/katib-config.yaml",
-                                "subPath": "katib-config.yaml",
+                                "files": [
+                                    {
+                                        "path": "katib-config.yaml",
+                                        "content": render_template(
+                                            "src/templates/katib-config.yaml.j2",
+                                            self.katib_config_context,
+                                        ),
+                                    }
+                                ],
                             },
                         ],
                     }
