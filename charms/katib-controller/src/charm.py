@@ -259,7 +259,7 @@ class Operator(CharmBase):
                         "name": "katib-controller",
                         "imageDetails": image_details,
                         "command": ["./katib-controller"],
-                        "args": ["--katib-config=/katib-config.yaml"],
+                        "args": ["--katib-config=/katib-config/katib-config.yaml"],
                         "ports": [
                             {
                                 "name": "webhook",
@@ -283,7 +283,7 @@ class Operator(CharmBase):
                             },
                             {
                                 "name": "katib-config",
-                                "mountPath": "/katib-config.yaml",
+                                "mountPath": "/katib-config",
                                 "files": [
                                     {
                                         "path": "katib-config.yaml",
