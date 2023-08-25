@@ -19,25 +19,25 @@ from ops.main import main
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, WaitingStatus
 
 DEFAULT_IMAGES = {
-    "default_trial_template": "docker.io/kubeflowkatib/mxnet-mnist:v0.15.0",
-    "early_stopping__medianstop": "docker.io/kubeflowkatib/earlystopping-medianstop:v0.15.0",
-    "enas_cpu_template": "docker.io/kubeflowkatib/enas-cnn-cifar10-cpu:v0.15.0",
-    "metrics_collector_sidecar__stdout": "docker.io/kubeflowkatib/file-metrics-collector:v0.15.0",
-    "metrics_collector_sidecar__file": "docker.io/kubeflowkatib/file-metrics-collector:v0.15.0",
-    "metrics_collector_sidecar__tensorflow_event": "docker.io/kubeflowkatib/tfevent-metrics-collector:v0.15.0",  # noqa: E501
-    "pytorch_job_template__master": "docker.io/kubeflowkatib/pytorch-mnist-cpu:v0.15.0",
-    "pytorch_job_template__worker": "docker.io/kubeflowkatib/pytorch-mnist-cpu:v0.15.0",
-    "suggestion__random": "docker.io/kubeflowkatib/suggestion-hyperopt:v0.15.0",
-    "suggestion__tpe": "docker.io/kubeflowkatib/suggestion-hyperopt:v0.15.0",
-    "suggestion__grid": "docker.io/kubeflowkatib/suggestion-optuna:v0.15.0",
-    "suggestion__hyperband": "docker.io/kubeflowkatib/suggestion-hyperband:v0.15.0",
-    "suggestion__bayesianoptimization": "docker.io/kubeflowkatib/suggestion-skopt:v0.15.0",
-    "suggestion__cmaes": "docker.io/kubeflowkatib/suggestion-goptuna:v0.15.0",
-    "suggestion__sobol": "docker.io/kubeflowkatib/suggestion-goptuna:v0.15.0",
-    "suggestion__multivariate_tpe": "docker.io/kubeflowkatib/suggestion-optuna:v0.15.0",
-    "suggestion__enas": "docker.io/kubeflowkatib/suggestion-enas:v0.15.0",
-    "suggestion__darts": "docker.io/kubeflowkatib/suggestion-darts:v0.15.0",
-    "suggestion__pbt": "docker.io/kubeflowkatib/suggestion-pbt:v0.15.0",
+    "default_trial_template": "docker.io/kubeflowkatib/mxnet-mnist:v0.16.0-rc.1",
+    "early_stopping__medianstop": "docker.io/kubeflowkatib/earlystopping-medianstop:v0.16.0-rc.1",
+    "enas_cpu_template": "docker.io/kubeflowkatib/enas-cnn-cifar10-cpu:v0.16.0-rc.1",
+    "metrics_collector_sidecar__stdout": "docker.io/kubeflowkatib/file-metrics-collector:v0.16.0-rc.1",  # noqa: E501
+    "metrics_collector_sidecar__file": "docker.io/kubeflowkatib/file-metrics-collector:v0.16.0-rc.1",  # noqa: E501
+    "metrics_collector_sidecar__tensorflow_event": "docker.io/kubeflowkatib/tfevent-metrics-collector:v0.16.0-rc.1",  # noqa: E501
+    "pytorch_job_template__master": "docker.io/kubeflowkatib/pytorch-mnist-cpu:v0.16.0-rc.1",
+    "pytorch_job_template__worker": "docker.io/kubeflowkatib/pytorch-mnist-cpu:v0.16.0-rc.1",
+    "suggestion__random": "docker.io/kubeflowkatib/suggestion-hyperopt:v0.16.0-rc.1",
+    "suggestion__tpe": "docker.io/kubeflowkatib/suggestion-hyperopt:v0.16.0-rc.1",
+    "suggestion__grid": "docker.io/kubeflowkatib/suggestion-optuna:v0.16.0-rc.1",
+    "suggestion__hyperband": "docker.io/kubeflowkatib/suggestion-hyperband:v0.16.0-rc.1",
+    "suggestion__bayesianoptimization": "docker.io/kubeflowkatib/suggestion-skopt:v0.16.0-rc.1",
+    "suggestion__cmaes": "docker.io/kubeflowkatib/suggestion-goptuna:v0.16.0-rc.1",
+    "suggestion__sobol": "docker.io/kubeflowkatib/suggestion-goptuna:v0.16.0-rc.1",
+    "suggestion__multivariate_tpe": "docker.io/kubeflowkatib/suggestion-optuna:v0.16.0-rc.1",
+    "suggestion__enas": "docker.io/kubeflowkatib/suggestion-enas:v0.16.0-rc.1",
+    "suggestion__darts": "docker.io/kubeflowkatib/suggestion-darts:v0.16.0-rc.1",
+    "suggestion__pbt": "docker.io/kubeflowkatib/suggestion-pbt:v0.16.0-rc.1",
 }
 
 logger = logging.getLogger(__name__)
@@ -173,6 +173,8 @@ class Operator(CharmBase):
             self._check_leader()
             self.custom_images = parse_images_config(self.model.config["custom_images"])
             self.images_context = self.get_images(DEFAULT_IMAGES, self.custom_images)
+            self.katib_config_context = self.images_context
+            self.katib_config_context["webhookPort"] = self.model.config["webhook-port"]
             image_details = self._check_image_details()
         except CheckFailed as check_failed:
             self.model.unit.status = check_failed.status
@@ -201,6 +203,7 @@ class Operator(CharmBase):
                                         "pods",
                                         "pods/log",
                                         "pods/status",
+                                        "secrets",
                                     ],
                                     "verbs": ["*"],
                                 },
@@ -239,6 +242,14 @@ class Operator(CharmBase):
                                     ],
                                     "verbs": ["*"],
                                 },
+                                {
+                                    "apiGroups": ["admissionregistration.k8s.io"],
+                                    "resources": [
+                                        "validatingwebhookconfigurations",
+                                        "mutatingwebhookconfigurations",
+                                    ],
+                                    "verbs": ["get", "watch", "list", "patch"],
+                                },
                             ],
                         }
                     ]
@@ -248,14 +259,7 @@ class Operator(CharmBase):
                         "name": "katib-controller",
                         "imageDetails": image_details,
                         "command": ["./katib-controller"],
-                        "args": [
-                            f"--webhook-port={self.model.config['webhook-port']}",
-                            "--trial-resources=Job.v1.batch",
-                            "--trial-resources=TFJob.v1.kubeflow.org",
-                            "--trial-resources=PyTorchJob.v1.kubeflow.org",
-                            "--trial-resources=MPIJob.v1.kubeflow.org",
-                            "--trial-resources=PipelineRun.v1beta1.tekton.dev",
-                        ],
+                        "args": ["--katib-config=/katib-config/katib-config.yaml"],
                         "ports": [
                             {
                                 "name": "webhook",
@@ -276,7 +280,20 @@ class Operator(CharmBase):
                                     {"path": "tls.crt", "content": self._stored.cert},
                                     {"path": "tls.key", "content": self._stored.key},
                                 ],
-                            }
+                            },
+                            {
+                                "name": "katib-config",
+                                "mountPath": "/katib-config",
+                                "files": [
+                                    {
+                                        "path": "katib-config.yaml",
+                                        "content": render_template(
+                                            "src/templates/katib-config.yaml.j2",
+                                            self.katib_config_context,
+                                        ),
+                                    }
+                                ],
+                            },
                         ],
                     }
                 ],
@@ -302,11 +319,8 @@ class Operator(CharmBase):
                 },
                 "configMaps": {
                     "katib-config": {
-                        f: render_template(f"src/templates/{f}.json.j2", self.images_context)
-                        for f in (
-                            "metrics-collector-sidecar",
-                            "suggestion",
-                            "early-stopping",
+                        "katib-config.yaml": render_template(
+                            "src/templates/katib-config.yaml.j2", self.katib_config_context
                         )
                     },
                     "trial-template": {
