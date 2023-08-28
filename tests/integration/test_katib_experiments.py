@@ -27,6 +27,7 @@ PROFILE_RESOURCE = create_global_resource(
     kind="Profile",
     plural="profiles",
 )
+TRAINING_CHARM = "training-operator"
 
 
 @pytest.fixture(scope="module")
@@ -35,6 +36,19 @@ def lightkube_client() -> lightkube.Client:
     client = lightkube.Client(field_manager="katib-operators")
     load_in_cluster_generic_resources(client)
     return client
+
+
+@pytest.fixture(scope="module")
+async def training_operator(ops_test: OpsTest):
+    """Deploy training-operator charm, and wait until it's active."""
+    await ops_test.model.deploy(
+        entity_url=TRAINING_CHARM,
+        channel="latest/edge",
+        trust=True,
+    )
+    await ops_test.model.wait_for_idle(
+        apps=[TRAINING_CHARM], status="active", raise_on_blocked=False, timeout=60 * 5
+    )
 
 
 @pytest.fixture(scope="module")
@@ -60,12 +74,13 @@ def create_profile(lightkube_client):
     glob.glob("tests/assets/crs/experiments/*.yaml"),
 )
 async def test_katib_experiments(
-    create_profile, lightkube_client, ops_test: OpsTest, experiment_file
+    create_profile, lightkube_client, training_operator, ops_test: OpsTest, experiment_file
 ):
     """Test Katib experiments.
 
     Create an experiment and assert that it is Running or Succeeded. Delete the experiment after it
     has completed.
+    Uses `training-operator` fixture needed to run the tfjob-mnist-with-summaries.yaml example.
     NOTE: This test is re-using the deployment created in test_charms::test_deploy_katib_charms().
     """
     exp_name = create_experiment(
