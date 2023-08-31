@@ -139,7 +139,8 @@ def test_apply_k8s_resources_success(
     mocked_resource_handler.apply.assert_called()
     assert isinstance(harness.charm.model.unit.status, MaintenanceStatus)
 
-
+# FIXME: re-enable test when https://github.com/canonical/katib-operators/issues/128 is closed.
+@pytest.mark.skip('Skipping due to Pebble health checks being disabled. Re-enable when #128 is closed.')
 @patch("charm.KatibDBManagerOperator._get_check_status")
 @pytest.mark.parametrize(
     "health_check_status, charm_status",
