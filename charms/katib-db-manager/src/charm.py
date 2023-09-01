@@ -138,20 +138,24 @@ class KatibDBManagerOperator(CharmBase):
                     "startup": "enabled",
                     "command": self._exec_command,
                     "environment": self.service_environment,
-                    "on-check-failure": {"katib-db-manager-up": "restart"},
+                    # Disable health checks due to issue #128.
+                    # FIXME: uncomment when https://github.com/canonical/katib-operators/issues/128 is closed.  # noqa E501
+                    # "on-check-failure": {"katib-db-manager-up": "restart"},
                 },
             },
-            "checks": {
-                "katib-db-manager-up": {
-                    "override": "replace",
-                    "period": "60s",
-                    "timeout": "20s",
-                    "threshold": 5,
-                    "exec": {
-                        "command": f"/bin/grpc_health_probe -addr=:{self._port}",
-                    },
-                }
-            },
+            # Disable health checks due to issue #128.
+            # FIXME: uncomment when https://github.com/canonical/katib-operators/issues/128 is closed.  # noqa E501
+            # "checks": {
+            #     "katib-db-manager-up": {
+            #         "override": "replace",
+            #         "period": "60s",
+            #         "timeout": "20s",
+            #         "threshold": 5,
+            #         "exec": {
+            #             "command": f"/bin/grpc_health_probe -addr=:{self._port}",
+            #         },
+            #     }
+            # },
         }
         return Layer(layer_config)
 
@@ -377,10 +381,12 @@ class KatibDBManagerOperator(CharmBase):
     def _on_update_status(self, event):
         """Update status actions."""
         self._on_event(event)
-        try:
-            self._refresh_status()
-        except ErrorWithStatus as err:
-            self.model.unit.status = err.status
+        # Disable health checks due to issue #128.
+        # FIXME: uncomment when https://github.com/canonical/katib-operators/issues/128 is closed.
+        # try:
+        #     self._refresh_status()
+        # except ErrorWithStatus as err:
+        #     self.model.unit.status = err.status
 
     def _on_install(self, _):
         """Installation only tasks."""
