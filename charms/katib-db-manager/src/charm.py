@@ -138,7 +138,7 @@ class KatibDBManagerOperator(CharmBase):
                     "startup": "enabled",
                     "command": self._exec_command,
                     "environment": self.service_environment,
-                    # Disable health checks to issue #128.
+                    # Disable health checks due to issue #128.
                     # FIXME: uncomment when https://github.com/canonical/katib-operators/issues/128 is closed.  # noqa E501
                     # "on-check-failure": {"katib-db-manager-up": "restart"},
                 },
