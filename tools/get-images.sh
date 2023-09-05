@@ -4,12 +4,6 @@
 #
 # dynamic list
 IMAGE_LIST=()
-IMAGE_LIST+=($(find $REPO -type f -name metadata.yaml -exec yq '.resources | to_entries | .[] | .value | ."upstream-source"' {} \;))
-IMAGE_LIST+=($(grep image charms/katib-controller/src/suggestion.json | awk  '{print $2}' | sort --unique | sed s/\"//g | sed s/,//g))
-IMAGE_LIST+=($(grep image charms/katib-controller/src/suggestion.json | awk  '{print $2}' | sort --unique | sed s/\"//g | sed s/,//g))
-IMAGE_LIST+=($(grep image charms/katib-controller/src/enasCPUTemplate.yaml | awk  '{print $2}' | sort --unique | sed s/\"//g | sed s/,//g))
-IMAGE_LIST+=($(grep image charms/katib-controller/src/early-stopping.json | awk  '{print $2}' | sort --unique | sed s/\"//g | sed s/,//g))
-IMAGE_LIST+=($(grep image charms/katib-controller/src/defaultTrialTemplate.yaml | awk  '{print $2}' | sort --unique | sed s/\"//g | sed s/,//g))
-IMAGE_LIST+=($(grep image charms/katib-controller/src/pytorchJobTemplate.yaml | awk  '{print $2}' | sort --unique | sed s/\"//g | sed s/,//g))
-IMAGE_LIST+=($(grep image charms/katib-controller/src/metrics-collector-sidecar.json | awk  '{print $2}' | sort --unique | sed s/\"//g | sed s/,//g))
+IMAGE_LIST+=($(find . -type f -name metadata.yaml -exec yq '.resources | to_entries | .[] | .value | ."upstream-source"' {} \;))
+IMAGE_LIST+=($(yq '.[]' ./charms/katib-controller/src/default-custom-images.json  | sed 's/"//g'))
 printf "%s\n" "${IMAGE_LIST[@]}"
