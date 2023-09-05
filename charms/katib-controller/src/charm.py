@@ -2,6 +2,7 @@
 # Copyright 2023 Canonical Ltd.
 # See LICENSE file for licensing details.
 
+import json
 import logging
 from base64 import b64encode
 from pathlib import Path
@@ -18,27 +19,9 @@ from ops.framework import StoredState
 from ops.main import main
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, WaitingStatus
 
-DEFAULT_IMAGES = {
-    "default_trial_template": "docker.io/kubeflowkatib/mxnet-mnist:v0.16.0-rc.1",
-    "early_stopping__medianstop": "docker.io/kubeflowkatib/earlystopping-medianstop:v0.16.0-rc.1",
-    "enas_cpu_template": "docker.io/kubeflowkatib/enas-cnn-cifar10-cpu:v0.16.0-rc.1",
-    "metrics_collector_sidecar__stdout": "docker.io/kubeflowkatib/file-metrics-collector:v0.16.0-rc.1",  # noqa: E501
-    "metrics_collector_sidecar__file": "docker.io/kubeflowkatib/file-metrics-collector:v0.16.0-rc.1",  # noqa: E501
-    "metrics_collector_sidecar__tensorflow_event": "docker.io/kubeflowkatib/tfevent-metrics-collector:v0.16.0-rc.1",  # noqa: E501
-    "pytorch_job_template__master": "docker.io/kubeflowkatib/pytorch-mnist-cpu:v0.16.0-rc.1",
-    "pytorch_job_template__worker": "docker.io/kubeflowkatib/pytorch-mnist-cpu:v0.16.0-rc.1",
-    "suggestion__random": "docker.io/kubeflowkatib/suggestion-hyperopt:v0.16.0-rc.1",
-    "suggestion__tpe": "docker.io/kubeflowkatib/suggestion-hyperopt:v0.16.0-rc.1",
-    "suggestion__grid": "docker.io/kubeflowkatib/suggestion-optuna:v0.16.0-rc.1",
-    "suggestion__hyperband": "docker.io/kubeflowkatib/suggestion-hyperband:v0.16.0-rc.1",
-    "suggestion__bayesianoptimization": "docker.io/kubeflowkatib/suggestion-skopt:v0.16.0-rc.1",
-    "suggestion__cmaes": "docker.io/kubeflowkatib/suggestion-goptuna:v0.16.0-rc.1",
-    "suggestion__sobol": "docker.io/kubeflowkatib/suggestion-goptuna:v0.16.0-rc.1",
-    "suggestion__multivariate_tpe": "docker.io/kubeflowkatib/suggestion-optuna:v0.16.0-rc.1",
-    "suggestion__enas": "docker.io/kubeflowkatib/suggestion-enas:v0.16.0-rc.1",
-    "suggestion__darts": "docker.io/kubeflowkatib/suggestion-darts:v0.16.0-rc.1",
-    "suggestion__pbt": "docker.io/kubeflowkatib/suggestion-pbt:v0.16.0-rc.1",
-}
+DEFAULT_IMAGES_FILE = "src/default-custom-images.json"
+with open(DEFAULT_IMAGES_FILE, "r") as json_file:
+    DEFAULT_IMAGES = json.load(json_file)
 
 logger = logging.getLogger(__name__)
 
