@@ -117,7 +117,7 @@ jobs:
         run: |
           # Requires the model to be called kubeflow due to kfp-viewer
           juju add-model kubeflow --config default-series=focal
-          sg snap_microk8s -c "tox -e ${{ matrix.charm }}-integration"
+          sg snap_microk8s -c "tox -e bundle-integration -- --model kubeflow"
 
       - name: Get pod statuses
         run: kubectl get all -A
