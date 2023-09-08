@@ -69,17 +69,12 @@ jobs:
         uses: charmed-kubernetes/actions-operator@main
         with:
           provider: microk8s
-          channel: 1.24/stable
-          juju-channel: 2.9/stable
+          channel: 1.25-strict/stable
+          juju-channel: 3.1/stable
           charmcraft-channel: latest/candidate
 
-      # TODO: Remove once the actions-operator does this automatically
-      - name: Configure kubectl
-        run: |
-          sg microk8s -c "microk8s config > ~/.kube/config"
-
       - run: |
-          sg microk8s -c "tox -e ${{ matrix.charm }}-integration"
+          sg snap_microk8s -c "tox -e ${{ matrix.charm }}-integration"
 
       # Collect debug logs if failed
       - name: Dump Juju/k8s logs on failure
@@ -114,15 +109,15 @@ jobs:
         uses: charmed-kubernetes/actions-operator@main
         with:
           provider: microk8s
-          channel: 1.24/stable
-          juju-channel: 2.9/stable
+          channel: 1.25-strict/stable
+          juju-channel: 3.1/stable
           microk8s-addons: "dns storage rbac"
 
       - name: Run test
         run: |
           # Requires the model to be called kubeflow due to kfp-viewer
           juju add-model kubeflow --config default-series=focal
-          tox -e bundle-integration -- --model kubeflow
+          sg snap_microk8s -c "tox -e bundle-integration -- --model kubeflow"
 
       - name: Get pod statuses
         run: kubectl get all -A
