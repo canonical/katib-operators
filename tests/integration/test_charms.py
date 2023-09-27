@@ -30,7 +30,6 @@ logger = logging.getLogger(__name__)
 @pytest.mark.skip_if_deployed
 @pytest.mark.abort_on_fail
 async def test_deploy_katib_charms(ops_test: OpsTest):
-
     # Build katib-controller, katib-db-manager, and katib-ui charms
     controller_charm = await ops_test.build_charm(CONTROLLER_PATH)
     db_manager_charm = await ops_test.build_charm(DB_PATH)
@@ -44,7 +43,9 @@ async def test_deploy_katib_charms(ops_test: OpsTest):
     # Deploy katib-controller, katib-db-manager, and katib-ui charms
     await ops_test.model.deploy(controller_charm, resources={"oci-image": controller_image_path})
 
-    await ops_test.model.deploy(db_manager_charm, resources={"oci-image": db_image_path}, trust=True)
+    await ops_test.model.deploy(
+        db_manager_charm, resources={"oci-image": db_image_path}, trust=True
+    )
 
     await ops_test.model.deploy(ui_charm, resources={"oci-image": ui_image_path}, trust=True)
 
@@ -73,7 +74,6 @@ async def test_deploy_katib_charms(ops_test: OpsTest):
 
 
 async def test_create_experiment(ops_test: OpsTest):
-
     namespace = ops_test.model_name
     lightkube_client = lightkube.Client()
 
