@@ -57,7 +57,7 @@ juju add-model dev
 juju model-config logging-config="<root>=INFO;unit=DEBUG"
 # Deploy the charm
 juju deploy ./katib-db-manager_ubuntu-20.04-amd64.charm \
-    --resource oci-image=$(yq '.containers."katib-db-manager".resources."oci-image"."upstream-source"' metadata.yaml)
+    --resource oci-image=$(yq '.resources."oci-image"."upstream-source"' metadata.yaml)
 
 ## Canonical Contributor Agreement
 
