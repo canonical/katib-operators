@@ -6,6 +6,7 @@ description: |
   Katib is the project which is agnostic to machine learning (ML) frameworks. It can tune
   hyperparameters of applications written in any language of the users’ choice and natively
   supports many ML frameworks, such as TensorFlow, MXNet, PyTorch, XGBoost, and others.
+docs: https://discourse.charmhub.io/t/8221
 website: https://charmhub.io/katib-db-manager
 source: https://github.com/canonical/katib-operators
 issues: https://github.com/canonical/katib-operators/issues
