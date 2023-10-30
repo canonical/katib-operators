@@ -72,7 +72,7 @@ Katib controller comes with a set of preconfigured images that are used in Katib
 
 ```json
 {
-    "default_trial_template": "docker.io/kubeflowkatib/mxnet-mnist:v0.15.0",
+    "default_trial_template": "docker.io/ubuntu:22.04",
     "early_stopping__medianstop": "docker.io/kubeflowkatib/earlystopping-medianstop:v0.15.0",
     "enas_cpu_template": "docker.io/kubeflowkatib/enas-cnn-cifar10-cpu:v0.15.0",
     "metrics_collector_sidecar__stdout": "docker.io/kubeflowkatib/file-metrics-collector:v0.15.0",
