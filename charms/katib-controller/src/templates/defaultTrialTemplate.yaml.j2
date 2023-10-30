@@ -8,7 +8,7 @@ spec:
           image: {{ default_trial_template }}
           command:
             - "python3"
-            - "/opt/mxnet-mnist/mnist.py"
+            - "/opt/some-script.py"
             - "--batch-size=64"
             - "--lr=${trialParameters.learningRate}"
             - "--num-layers=${trialParameters.numberLayers}"
