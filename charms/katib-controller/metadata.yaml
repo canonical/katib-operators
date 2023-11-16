@@ -14,7 +14,7 @@ resources:
     type: oci-image
     description: Backing OCI image
     auto-fetch: true
-    upstream-source: docker.io/kubeflowkatib/katib-controller:v0.16.0-rc.1
+    upstream-source: docker.io/kubeflowkatib/katib-controller:v0.16.0
 provides:
   metrics-endpoint:
     interface: prometheus_scrape
