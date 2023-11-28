@@ -115,6 +115,7 @@ class KatibUIOperator(CharmBase):
                     "override": "replace",
                     "summary": "entrypoint of the katib-ui-operator image",
                     "command": f"./katib-ui --port={self._port}",
+                    "working-dir": "/app",
                     "startup": "enabled",
                     "environment": {"KATIB_CORE_NAMESPACE": self.model.name},
                 }
