@@ -43,7 +43,7 @@ class KatibUIOperator(CharmBase):
         self._container_name = "katib-ui"
         self._namespace = self.model.name
         self._name = self.model.app.name
-        self._container = self.unit.get_container(self._name)
+        self._container = self.unit.get_container(self._container_name)
         self._lightkube_field_manager = "lightkube"
         self._port = self.model.config["port"]
         port = ServicePort(int(self._port), name=f"{self.app.name}")
