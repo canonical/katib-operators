@@ -117,9 +117,9 @@ class KatibUIOperator(CharmBase):
                     "command": f"./katib-ui --port={self._port}",
                     # working-dir is required to interchangeably support docker images and rocks.
                     # Rocks always set their entrypoint working-dir to "/" because pebble is the
-                    # entrypoint, so we need to be explicit.  This was not needed for running 
+                    # entrypoint, so we need to be explicit.  This was not needed for running
                     # the upstream docker image because that image has a entrypoint working-dir
-                    # of "/app", which is used if working-dir is not set here. 
+                    # of "/app", which is used if working-dir is not set here.
                     "working-dir": "/app",
                     "startup": "enabled",
                     "environment": {"KATIB_CORE_NAMESPACE": self.model.name},
