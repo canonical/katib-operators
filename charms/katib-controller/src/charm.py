@@ -293,14 +293,8 @@ class Operator(CharmBase):
                         )
                     },
                     "trial-template": {
-                        f
-                        + suffix: render_template(
-                            f"src/templates/{f}.yaml.j2", self.images_context
-                        )
-                        for f, suffix in (
-                            ("defaultTrialTemplate", ".yaml"),
-                            ("enasCPUTemplate", ""),
-                            ("pytorchJobTemplate", ""),
+                        "defaultTrialTemplate.yaml": render_template(
+                            "src/templates/defaultTrialTemplate.yaml.j2", self.images_context
                         )
                     },
                 },
