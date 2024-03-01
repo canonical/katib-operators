@@ -13,6 +13,21 @@ from charm import KatibControllerOperator
 
 IMAGES_CONTEXT = json.loads(Path("src/default-custom-images.json").read_text())
 
+TEST_NAMESPACE = "test-namespace"
+EXPECTED_PEBBLE_LAYER = {
+    "services": {
+        "katib-controller": {
+            "override": "replace",
+            "summary": "Entry point for katib-controller image",
+            "command": "./katib-controller --katib-config=/katib-config/katib-config.yaml",  # noqa E501
+            "startup": "enabled",
+            "environment": {
+                "KATIB_CORE_NAMESPACE": f"{TEST_NAMESPACE}",
+            },
+        }
+    }
+}
+
 
 @pytest.fixture
 def harness() -> Harness:
@@ -89,6 +104,7 @@ def test_pebble_services_running(
 ):
     """Test that if the Kubernetes Component is Active, the pebble services successfully start."""
     # Arrange
+    harness.set_model_name(TEST_NAMESPACE)
     harness.begin()
     harness.set_can_connect("katib-controller", True)
 
@@ -105,3 +121,5 @@ def test_pebble_services_running(
     container = harness.charm.unit.get_container("katib-controller")
     service = container.get_service("katib-controller")
     assert service.is_running()
+    actual_layer = harness.get_container_pebble_plan("katib-controller").to_dict()
+    assert EXPECTED_PEBBLE_LAYER == actual_layer
