@@ -37,7 +37,9 @@ async def test_deploy_katib_charms(ops_test: OpsTest):
     ui_image_path = UI_METADATA["resources"]["oci-image"]["upstream-source"]
 
     # Deploy katib-controller, katib-db-manager, and katib-ui charms
-    await ops_test.model.deploy(controller_charm, resources={"oci-image": controller_image_path})
+    await ops_test.model.deploy(
+        controller_charm, resources={"oci-image": controller_image_path}, trust=True
+    )
 
     await ops_test.model.deploy(
         db_manager_charm, resources={"oci-image": db_image_path}, trust=True
