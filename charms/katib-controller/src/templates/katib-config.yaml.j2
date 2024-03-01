@@ -1,65 +1,58 @@
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: katib-config
-data:
-  katib-config.yaml: |-
-    ---
-    apiVersion: config.kubeflow.org/v1beta1
-    kind: KatibConfig
-    init:
-      controller:
-        webhookPort: {{ webhookPort }}
-        trialResources:
-          - Job.v1.batch
-          - TFJob.v1.kubeflow.org
-          - PyTorchJob.v1.kubeflow.org
-          - MPIJob.v1.kubeflow.org
-          - XGBoostJob.v1.kubeflow.org
-          - MXJob.v1.kubeflow.org
-    runtime:
-      metricsCollectors:
-        - kind: StdOut
-          image: {{ metrics_collector_sidecar__stdout }}
-        - kind: File
-          image: {{ metrics_collector_sidecar__file }}
-        - kind: TensorFlowEvent
-          image: {{ metrics_collector_sidecar__tensorflow_event }}
-          resources:
-            limits:
-              memory: 1Gi
-      suggestions:
-        - algorithmName: random
-          image: {{ suggestion__random }}
-        - algorithmName: tpe
-          image: {{ suggestion__tpe }}
-        - algorithmName: grid
-          image: {{ suggestion__grid }}
-        - algorithmName: hyperband
-          image: {{ suggestion__hyperband }}
-        - algorithmName: bayesianoptimization
-          image: {{ suggestion__bayesianoptimization }}
-        - algorithmName: cmaes
-          image: {{ suggestion__cmaes }}
-        - algorithmName: sobol
-          image: {{ suggestion__sobol }}
-        - algorithmName: multivariate-tpe
-          image: {{ suggestion__multivariate_tpe }}
-        - algorithmName: enas
-          image: {{ suggestion__enas }}
-          resources:
-            limits:
-              memory: 200Mi
-        - algorithmName: darts
-          image: {{ suggestion__darts }}
-        - algorithmName: pbt
-          image: {{ suggestion__pbt }}
-          persistentVolumeClaimSpec:
-            accessModes:
-              - ReadWriteMany
-            resources:
-              requests:
-                storage: 5Gi
-      earlyStoppings:
-        - algorithmName: medianstop
-          image: {{ early_stopping__medianstop }}
+apiVersion: config.kubeflow.org/v1beta1
+kind: KatibConfig
+init:
+  controller:
+    webhookPort: {{ webhookPort }}
+    trialResources:
+      - Job.v1.batch
+      - TFJob.v1.kubeflow.org
+      - PyTorchJob.v1.kubeflow.org
+      - MPIJob.v1.kubeflow.org
+      - XGBoostJob.v1.kubeflow.org
+      - MXJob.v1.kubeflow.org
+runtime:
+  metricsCollectors:
+    - kind: StdOut
+      image: {{ metrics_collector_sidecar__stdout }}
+    - kind: File
+      image: {{ metrics_collector_sidecar__file }}
+    - kind: TensorFlowEvent
+      image: {{ metrics_collector_sidecar__tensorflow_event }}
+      resources:
+        limits:
+          memory: 1Gi
+  suggestions:
+    - algorithmName: random
+      image: {{ suggestion__random }}
+    - algorithmName: tpe
+      image: {{ suggestion__tpe }}
+    - algorithmName: grid
+      image: {{ suggestion__grid }}
+    - algorithmName: hyperband
+      image: {{ suggestion__hyperband }}
+    - algorithmName: bayesianoptimization
+      image: {{ suggestion__bayesianoptimization }}
+    - algorithmName: cmaes
+      image: {{ suggestion__cmaes }}
+    - algorithmName: sobol
+      image: {{ suggestion__sobol }}
+    - algorithmName: multivariate-tpe
+      image: {{ suggestion__multivariate_tpe }}
+    - algorithmName: enas
+      image: {{ suggestion__enas }}
+      resources:
+        limits:
+          memory: 200Mi
+    - algorithmName: darts
+      image: {{ suggestion__darts }}
+    - algorithmName: pbt
+      image: {{ suggestion__pbt }}
+      persistentVolumeClaimSpec:
+        accessModes:
+          - ReadWriteMany
+        resources:
+          requests:
+            storage: 5Gi
+  earlyStoppings:
+    - algorithmName: medianstop
+      image: {{ early_stopping__medianstop }}

@@ -42,10 +42,8 @@ K8S_RESOURCE_FILES = [
     "src/templates/auth_manifests.yaml.j2",
     "src/templates/crds.yaml",
     "src/templates/webhooks.yaml.j2",
-]
-CONFIGMAP_FILES = [
     "src/templates/defaultTrialTemplate.yaml.j2",
-    "src/templates/katib-config.yaml.j2",
+    "src/templates/katib-config-configmap.yaml.j2",
 ]
 
 CERTS_FOLDER = "/tmp/cert"
@@ -129,7 +127,7 @@ class KatibControllerOperator(CharmBase):
         self.kubernetes_resources = self.charm_reconciler.add(
             component=KubernetesComponent(
                 charm=self,
-                name="kubernetes:auth-and-webhooks-and-crds",
+                name="kubernetes:auths-webhooks-crds-configmaps",
                 resource_templates=K8S_RESOURCE_FILES,
                 krh_resource_types={
                     ClusterRole,
@@ -138,37 +136,23 @@ class KatibControllerOperator(CharmBase):
                     ServiceAccount,
                     MutatingWebhookConfiguration,
                     ValidatingWebhookConfiguration,
-                },
-                krh_labels=create_charm_default_labels(
-                    self.app.name, self.model.name, scope="auth-and-webhooks-and-crds"
-                ),
-                context_callable=lambda: {
-                    "app_name": self.app.name,
-                    "namespace": self._namespace,
-                    "ca_bundle": b64encode(self._stored.ca.encode("ascii")).decode("utf-8"),
-                },
-                lightkube_client=lightkube.Client(),
-            ),
-            depends_on=[self.leadership_gate],
-        )
-
-        self.configmap_resources = self.charm_reconciler.add(
-            component=KubernetesComponent(
-                charm=self,
-                name="kubernetes:configmaps",
-                resource_templates=CONFIGMAP_FILES,
-                krh_resource_types={
                     ConfigMap,
                 },
                 krh_labels=create_charm_default_labels(
-                    self.app.name, self.model.name, scope="configmaps"
+                    self.app.name, self.model.name, scope="auths-webhooks-crds-configmaps"
                 ),
-                context_callable=lambda: dict(
-                    {"webhookPort": self.model.config["webhook-port"]},
+                context_callable=lambda: {
+                    **{
+                        "app_name": self.app.name,
+                        "namespace": self._namespace,
+                        "ca_bundle": b64encode(self._stored.ca.encode("ascii")).decode("utf-8"),
+                        "webhookPort": self.model.config["webhook-port"],
+                    },
                     **self.get_images(
-                        DEFAULT_IMAGES, parse_images_config(self.model.config["custom_images"])
+                        DEFAULT_IMAGES,
+                        parse_images_config(self.model.config["custom_images"]),
                     ),
-                ),
+                },
                 lightkube_client=lightkube.Client(),
             ),
             depends_on=[self.leadership_gate],
@@ -183,9 +167,6 @@ class KatibControllerOperator(CharmBase):
 
         with tempfile.NamedTemporaryFile(delete=False) as ca_file:
             ca_file.write(self._stored.ca.encode("utf-8"))
-
-        self.custom_images = parse_images_config(self.model.config["custom_images"])
-        self.images_context = self.get_images(DEFAULT_IMAGES, self.custom_images)
 
         self.katib_controller_container = self.charm_reconciler.add(
             component=KatibControllerPebbleService(
@@ -220,7 +201,7 @@ class KatibControllerOperator(CharmBase):
                 ],
                 inputs_getter=lambda: KatibControllerInputs(NAMESPACE=self.model.name),
             ),
-            depends_on=[self.leadership_gate, self.kubernetes_resources, self.configmap_resources],
+            depends_on=[self.leadership_gate, self.kubernetes_resources],
         )
 
         self.charm_reconciler.install_default_event_handlers()

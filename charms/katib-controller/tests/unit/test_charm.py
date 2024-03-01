@@ -45,10 +45,10 @@ def test_not_leader(harness, mocked_lightkube_client, mocked_kubernetes_service_
     assert harness.charm.model.unit.status.message.startswith("[leadership-gate]")
 
 
-def test_kubernetes_and_configmaps_created_method(
+def test_kubernetes_resources_created_method(
     harness, mocked_lightkube_client, mocked_kubernetes_service_patch
 ):
-    """Test whether we try to create Kubernetes resources and Configmaps when we have leadership."""
+    """Test whether we try to create Kubernetes resources when we have leadership."""
     # Arrange
     # Needed because kubernetes component will only apply to k8s if we are the leader
     harness.set_leader(True)
@@ -62,9 +62,6 @@ def test_kubernetes_and_configmaps_created_method(
     harness.charm.kubernetes_resources.component._get_missing_kubernetes_resources = MagicMock(
         return_value=[]
     )
-    harness.charm.configmap_resources.component._get_missing_kubernetes_resources = MagicMock(
-        return_value=[]
-    )
 
     # Act
     harness.charm.on.install.emit()
@@ -72,7 +69,6 @@ def test_kubernetes_and_configmaps_created_method(
     # Assert
     assert mocked_lightkube_client.apply.call_count == 10
     assert isinstance(harness.charm.kubernetes_resources.status, ActiveStatus)
-    assert isinstance(harness.charm.configmap_resources.status, ActiveStatus)
 
 
 def test_get_certs(harness, mocked_lightkube_client, mocked_kubernetes_service_patch):
@@ -99,10 +95,8 @@ def test_pebble_services_running(
     # Mock:
     # * leadership_gate to have get_status=>Active
     # * kubernetes_resources to have get_status=>Active
-    # * configmap_resources to have get_status=>Active
     harness.charm.leadership_gate.get_status = MagicMock(return_value=ActiveStatus())
     harness.charm.kubernetes_resources.get_status = MagicMock(return_value=ActiveStatus())
-    harness.charm.configmap_resources.get_status = MagicMock(return_value=ActiveStatus())
 
     # Act
     harness.charm.on.install.emit()

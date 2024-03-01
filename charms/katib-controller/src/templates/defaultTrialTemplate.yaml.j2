@@ -2,6 +2,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: trial-template
+  namespace: {{ namespace }}
 data:
   defaultTrialTemplate.yaml: |-
     apiVersion: batch/v1
