@@ -49,6 +49,7 @@ jobs:
       fail-fast: false
       matrix:
         charm:
+          - katib-controller
           - katib-db-manager
     steps:
       - uses: actions/checkout@v3
