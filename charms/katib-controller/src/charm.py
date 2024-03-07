@@ -141,18 +141,14 @@ class KatibControllerOperator(CharmBase):
                 krh_labels=create_charm_default_labels(
                     self.app.name, self.model.name, scope="auths-webhooks-crds-configmaps"
                 ),
-                context_callable=lambda: {
-                    **{
+                context_callable=self._get_context_callable_with_images_context(
+                    context_dict={
                         "app_name": self.app.name,
                         "namespace": self._namespace,
                         "ca_bundle": b64encode(self._stored.ca.encode("ascii")).decode("utf-8"),
                         "webhookPort": self.model.config["webhook-port"],
-                    },
-                    **self.get_images(
-                        DEFAULT_IMAGES,
-                        parse_images_config(self.model.config["custom_images"]),
-                    ),
-                },
+                    }
+                ),
                 lightkube_client=lightkube.Client(),
             ),
             depends_on=[self.leadership_gate],
@@ -190,12 +186,8 @@ class KatibControllerOperator(CharmBase):
                     ContainerFileTemplate(
                         source_template_path=KATIB_CONFIG_FILE,
                         destination_path=KATIB_CONFIG_DESTINTATION_PATH,
-                        context_function=lambda: dict(
-                            {"webhookPort": self.model.config["webhook-port"]},
-                            **self.get_images(
-                                DEFAULT_IMAGES,
-                                parse_images_config(self.model.config["custom_images"]),
-                            ),
+                        context_function=self._get_context_callable_with_images_context(
+                            context_dict={"webhookPort": self.model.config["webhook-port"]}
                         ),
                     ),
                 ],
@@ -235,6 +227,25 @@ class KatibControllerOperator(CharmBase):
                 else:
                     logger.warning(f"image_name {image_name} not in image list, ignoring.")
         return images
+
+    def _get_context_callable_with_images_context(self, context_dict: Dict[str, str]):
+        """
+        Returns a callable of a dictionary concatenating the 2 dicts:
+        * the dict containing the images context returned from `get_images`
+          with the key-value pairs of the default and custom images combined.
+        * the input dict `context_dict`.
+
+        Args:
+            context_dict (Dict[str, str]): A dictionary containing the context needed to
+            render the templates, excluding the images context.
+        """
+        return lambda: {
+            **self.get_images(
+                DEFAULT_IMAGES,
+                parse_images_config(self.model.config["custom_images"]),
+            ),
+            **context_dict,
+        }
 
     def _gen_certs_if_missing(self) -> None:
         """Generate certificates if they don't already exist in _stored."""
