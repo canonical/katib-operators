@@ -141,14 +141,7 @@ class KatibControllerOperator(CharmBase):
                 krh_labels=create_charm_default_labels(
                     self.app.name, self.model.name, scope="auths-webhooks-crds-configmaps"
                 ),
-                context_callable=self._get_context_callable_with_images_context(
-                    context_dict={
-                        "app_name": self.app.name,
-                        "namespace": self._namespace,
-                        "ca_bundle": b64encode(self._stored.ca.encode("ascii")).decode("utf-8"),
-                        "webhookPort": self.model.config["webhook-port"],
-                    }
-                ),
+                context_callable=lambda: self._kubernetes_manifests_context(),
                 lightkube_client=lightkube.Client(),
             ),
             depends_on=[self.leadership_gate],
@@ -186,9 +179,7 @@ class KatibControllerOperator(CharmBase):
                     ContainerFileTemplate(
                         source_template_path=KATIB_CONFIG_FILE,
                         destination_path=KATIB_CONFIG_DESTINTATION_PATH,
-                        context_function=self._get_context_callable_with_images_context(
-                            context_dict={"webhookPort": self.model.config["webhook-port"]}
-                        ),
+                        context_function=lambda: self._katib_config_context(),
                     ),
                 ],
                 inputs_getter=lambda: KatibControllerInputs(NAMESPACE=self.model.name),
@@ -228,24 +219,55 @@ class KatibControllerOperator(CharmBase):
                     logger.warning(f"image_name {image_name} not in image list, ignoring.")
         return images
 
-    def _get_context_callable_with_images_context(self, context_dict: Dict[str, str]):
+    def _kubernetes_manifests_context(self) -> Dict[str, str]:
         """
-        Returns a callable of a dictionary concatenating the 2 dicts:
-        * the dict containing the images context returned from `get_images`
-          with the key-value pairs of the default and custom images combined.
-        * the input dict `context_dict`.
+        Returns a dict of context used to render the Kubernetes manifests.
 
-        Args:
-            context_dict (Dict[str, str]): A dictionary containing the context needed to
-            render the templates, excluding the images context.
+        This function:
+        1. gets the dict of the images context by calling `get_images`,
+        the keys in the dict returned from `get_images` are the same as the variables
+        used in the manifests template.
+        2. updates the dict from `1.` to include the other context needed to render
+        the k8s manifests.
+        3. returns the updated dict containing the full context.
         """
-        return lambda: {
-            **self.get_images(
-                DEFAULT_IMAGES,
-                parse_images_config(self.model.config["custom_images"]),
-            ),
-            **context_dict,
-        }
+
+        context_dict = self.get_images(
+            DEFAULT_IMAGES,
+            parse_images_config(self.model.config["custom_images"]),
+        )
+        context_dict.update(
+            {
+                "app_name": self.app.name,
+                "namespace": self._namespace,
+                "ca_bundle": b64encode(self._stored.ca.encode("ascii")).decode("utf-8"),
+                "webhookPort": self.model.config["webhook-port"],
+            }
+        )
+        return context_dict
+
+    def _katib_config_context(self) -> Dict[str, str]:
+        """
+        Returns a dict of context used to render the katib-config template.
+
+        This function:
+        1. gets the dict of the images context by calling `get_images`,
+        the keys in the dict returned from `get_images` are the same as the variables
+        used in the katib-config template.
+        2. updates the dict from `1.` to include the webhookPort context.
+        3. returns the updated dict containing the full context.
+        """
+
+        context_dict = self.get_images(
+            DEFAULT_IMAGES,
+            parse_images_config(self.model.config["custom_images"]),
+        )
+        context_dict.update(
+            {
+                "webhookPort": self.model.config["webhook-port"],
+            }
+        )
+        return context_dict
 
     def _gen_certs_if_missing(self) -> None:
         """Generate certificates if they don't already exist in _stored."""
