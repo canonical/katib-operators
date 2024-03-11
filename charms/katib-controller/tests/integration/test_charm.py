@@ -42,7 +42,10 @@ class TestCharm:
         resources = {"oci-image": image_path}
 
         await ops_test.model.deploy(
-            charm_under_test, resources=resources, application_name=CHARM_NAME
+            charm_under_test,
+            resources=resources,
+            application_name=CHARM_NAME,
+            trust=True,
         )
 
         await ops_test.model.wait_for_idle(

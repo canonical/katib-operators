@@ -1,0 +1,157 @@
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: {{ app_name }}
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - configmaps
+      - serviceaccounts
+      - services
+      - events
+      - namespaces
+      - persistentvolumes
+      - persistentvolumeclaims
+      - pods
+      - pods/log
+      - pods/status
+      - secrets
+    verbs:
+      - "*"
+  - apiGroups:
+      - apps
+    resources:
+      - deployments
+    verbs:
+      - "*"
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resources:
+      - roles
+      - rolebindings
+    verbs:
+      - "*"
+  - apiGroups:
+      - batch
+    resources:
+      - jobs
+      - cronjobs
+    verbs:
+      - "*"
+  - apiGroups:
+      - kubeflow.org
+    resources:
+      - experiments
+      - experiments/status
+      - experiments/finalizers
+      - trials
+      - trials/status
+      - trials/finalizers
+      - suggestions
+      - suggestions/status
+      - suggestions/finalizers
+      - tfjobs
+      - pytorchjobs
+      - mpijobs
+      - xgboostjobs
+      - mxjobs
+    verbs:
+      - "*"
+  - apiGroups:
+      - admissionregistration.k8s.io
+    resources:
+      - validatingwebhookconfigurations
+      - mutatingwebhookconfigurations
+    verbs:
+      - "get"
+      - "watch"
+      - "list"
+      - "patch"
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ app_name }}
+  namespace: {{ namespace }}
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: {{ app_name }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ app_name }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ app_name }}
+    namespace: {{ namespace }}
+---
+# manifests/apps/katib/upstream/installs/katib-with-kubeflow/kubeflow-katib-roles.yaml
+aggregationRule:
+  clusterRoleSelectors:
+  - matchLabels:
+      rbac.authorization.kubeflow.org/aggregate-to-kubeflow-katib-admin: "true"
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    rbac.authorization.kubeflow.org/aggregate-to-kubeflow-admin: "true"
+  name: kubeflow-katib-admin
+rules: []
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    rbac.authorization.kubeflow.org/aggregate-to-kubeflow-edit: "true"
+    rbac.authorization.kubeflow.org/aggregate-to-kubeflow-katib-admin: "true"
+  name: kubeflow-katib-edit
+rules:
+- apiGroups:
+  - kubeflow.org
+  resources:
+  - experiments
+  - trials
+  - suggestions
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - delete
+  - deletecollection
+  - patch
+  - update
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - list
+- apiGroups:
+  - ""
+  resources:
+  - pods/log
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    rbac.authorization.kubeflow.org/aggregate-to-kubeflow-view: "true"
+  name: kubeflow-katib-view
+rules:
+- apiGroups:
+  - kubeflow.org
+  resources:
+  - experiments
+  - trials
+  - suggestions
+  verbs:
+  - get
+  - list
+  - watch

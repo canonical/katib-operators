@@ -7,12 +7,13 @@ description: |
   hyperparameters of applications written in any language of the users’ choice and natively
   supports many ML frameworks, such as TensorFlow, MXNet, PyTorch, XGBoost, and others.
 docs: https://discourse.charmhub.io/t/8219
-min-juju-version: "2.9.0"
-series: [kubernetes]
+containers:
+  katib-controller:
+    resource: oci-image
 resources:
   oci-image:
     type: oci-image
-    description: Backing OCI image
+    description: OCI image for katb-controller
     auto-fetch: true
     upstream-source: docker.io/kubeflowkatib/katib-controller:v0.16.0
 provides:
