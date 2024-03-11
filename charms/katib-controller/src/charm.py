@@ -141,7 +141,7 @@ class KatibControllerOperator(CharmBase):
                 krh_labels=create_charm_default_labels(
                     self.app.name, self.model.name, scope="auths-webhooks-crds-configmaps"
                 ),
-                context_callable=lambda: self._kubernetes_manifests_context(),
+                context_callable=self._kubernetes_manifests_context,
                 lightkube_client=lightkube.Client(),
             ),
             depends_on=[self.leadership_gate],
@@ -179,7 +179,7 @@ class KatibControllerOperator(CharmBase):
                     ContainerFileTemplate(
                         source_template_path=KATIB_CONFIG_FILE,
                         destination_path=KATIB_CONFIG_DESTINTATION_PATH,
-                        context_function=lambda: self._katib_config_context(),
+                        context_function=self._katib_config_context,
                     ),
                 ],
                 inputs_getter=lambda: KatibControllerInputs(NAMESPACE=self.model.name),
