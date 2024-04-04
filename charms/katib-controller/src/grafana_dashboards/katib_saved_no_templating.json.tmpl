@@ -137,14 +137,16 @@
           "interval": "",
           "legendFormat": "Experiments",
           "queryType": "randomWalk",
-          "refId": "A"
+          "refId": "A",
+          "datasource": "${prometheusds}"
         },
         {
           "expr": "rate(katib_trial_created_total[60m]) * 60*60",
           "hide": false,
           "interval": "",
           "legendFormat": "Trials",
-          "refId": "B"
+          "refId": "B",
+          "datasource": "${prometheusds}"
         }
       ],
       "thresholds": [],
