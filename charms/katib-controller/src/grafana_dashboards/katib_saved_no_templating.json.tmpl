@@ -67,16 +67,18 @@
         {
           "expr": "katib_experiments_current{status=\"Running\"}",
           "interval": "",
-          "legendFormat": "",
+          "legendFormat": "Current experiments",
           "queryType": "randomWalk",
-          "refId": "A"
+          "refId": "A",
+          "datasource": "${prometheusds}"
         },
         {
           "expr": "katib_trials_current{status=\"Running\"}",
           "hide": false,
           "interval": "",
-          "legendFormat": "",
-          "refId": "B"
+          "legendFormat": "Current trials",
+          "refId": "B",
+          "datasource": "${prometheusds}"
         }
       ],
       "timeFrom": null,
