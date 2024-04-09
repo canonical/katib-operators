@@ -23,10 +23,10 @@
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "thresholds"
+            "mode": "palette-classic"
           },
-          "custom": {},
           "mappings": [],
+          "noValue": "0",
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -67,22 +67,24 @@
         {
           "expr": "katib_experiments_current{status=\"Running\"}",
           "interval": "",
-          "legendFormat": "",
+          "legendFormat": "Current experiments",
           "queryType": "randomWalk",
-          "refId": "A"
+          "refId": "A",
+          "datasource": "${prometheusds}"
         },
         {
           "expr": "katib_trials_current{status=\"Running\"}",
           "hide": false,
           "interval": "",
-          "legendFormat": "",
-          "refId": "B"
+          "legendFormat": "Current trials",
+          "refId": "B",
+          "datasource": "${prometheusds}"
         }
       ],
       "timeFrom": null,
       "timeShift": null,
       "title": "Current Status",
-      "type": "gauge"
+      "type": "timeseries"
     },
     {
       "aliasColors": {},
@@ -137,14 +139,16 @@
           "interval": "",
           "legendFormat": "Experiments",
           "queryType": "randomWalk",
-          "refId": "A"
+          "refId": "A",
+          "datasource": "${prometheusds}"
         },
         {
           "expr": "rate(katib_trial_created_total[60m]) * 60*60",
           "hide": false,
           "interval": "",
           "legendFormat": "Trials",
-          "refId": "B"
+          "refId": "B",
+          "datasource": "${prometheusds}"
         }
       ],
       "thresholds": [],
@@ -191,7 +195,10 @@
   ],
   "schemaVersion": 27,
   "style": "dark",
-  "tags": [],
+  "tags": [
+    "ckf",
+    "katib"
+  ],
   "templating": {
     "list": []
   },
