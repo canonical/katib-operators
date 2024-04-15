@@ -27,7 +27,9 @@ PROFILE_RESOURCE = create_global_resource(
     kind="Profile",
     plural="profiles",
 )
-TRAINING_CHARM = "training-operator"
+TRAINING_OPERATOR = "training-operator"
+TRAINING_OPERATOR_CHANNEL = "1.7/stable"
+TRAINING_OPERATOR_TRUST = True
 
 
 @pytest.fixture(scope="module")
@@ -42,12 +44,12 @@ def lightkube_client() -> lightkube.Client:
 async def training_operator(ops_test: OpsTest):
     """Deploy training-operator charm, and wait until it's active."""
     await ops_test.model.deploy(
-        entity_url=TRAINING_CHARM,
-        channel="latest/edge",
-        trust=True,
+        entity_url=TRAINING_OPERATOR,
+        channel=TRAINING_OPERATOR_CHANNEL,
+        trust=TRAINING_OPERATOR_TRUST,
     )
     await ops_test.model.wait_for_idle(
-        apps=[TRAINING_CHARM], status="active", raise_on_blocked=False, timeout=60 * 5
+        apps=[TRAINING_OPERATOR], status="active", raise_on_blocked=False, timeout=60 * 5
     )
 
 
