@@ -20,6 +20,10 @@ CONTROLLER_APP_NAME = CONTROLLER_METADATA["name"]
 UI_APP_NAME = UI_METADATA["name"]
 DB_APP_NAME = DB_METADATA["name"]
 
+KUBEFLOW_PROFILES = "kubeflow-profiles"
+KUBEFLOW_PROFILES_CHANNEL = "1.8/stable"
+KUBEFLOW_PROFILES_TRUST = True
+
 logger = logging.getLogger(__name__)
 
 
@@ -37,7 +41,9 @@ async def test_deploy_katib_charms(ops_test: OpsTest):
     ui_image_path = UI_METADATA["resources"]["oci-image"]["upstream-source"]
 
     # Deploy katib-controller, katib-db-manager, and katib-ui charms
-    await ops_test.model.deploy(controller_charm, resources={"oci-image": controller_image_path})
+    await ops_test.model.deploy(
+        controller_charm, resources={"oci-image": controller_image_path},
+    )
 
     await ops_test.model.deploy(
         db_manager_charm, resources={"oci-image": db_image_path}, trust=True
@@ -63,9 +69,9 @@ async def test_deploy_katib_charms(ops_test: OpsTest):
 
     # Deploy charms responsible for CRDs creation
     await ops_test.model.deploy(
-        entity_url="kubeflow-profiles",
-        channel="latest/edge",
-        trust=True,
+        entity_url=KUBEFLOW_PROFILES,
+        channel=KUBEFLOW_PROFILES_CHANNEL,
+        trust=KUBEFLOW_PROFILES_TRUST,
     )
 
     # Wait for everything to deploy
