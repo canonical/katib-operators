@@ -11,6 +11,8 @@ options:
     type: string
     default: | 
       default_trial_template: ''
+      default_trial_template_enas: ''
+      default_trial_template_pytorch: ''
       early_stopping__medianstop: ''
       metrics_collector_sidecar__stdout: ''
       metrics_collector_sidecar__file: ''

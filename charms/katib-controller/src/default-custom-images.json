@@ -1,5 +1,7 @@
 {
     "default_trial_template": "docker.io/ubuntu:22.04",
+    "default_trial_template_enas": "docker.io/kubeflowkatib/enas-cnn-cifar10-cpu:v0.17.0-rc.0",
+    "default_trial_template_pytorch": "docker.io/kubeflowkatib/pytorch-mnist-cpu:v0.17.0-rc.0",
     "early_stopping__medianstop": "docker.io/kubeflowkatib/earlystopping-medianstop:v0.17.0-rc.0",
     "metrics_collector_sidecar__stdout": "docker.io/kubeflowkatib/file-metrics-collector:v0.17.0-rc.0",
     "metrics_collector_sidecar__file": "docker.io/kubeflowkatib/file-metrics-collector:v0.17.0-rc.0",
