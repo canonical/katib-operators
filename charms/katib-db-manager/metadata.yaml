@@ -18,7 +18,7 @@ resources:
     type: oci-image
     description: Backing OCI image
     auto-fetch: true
-    upstream-source: docker.io/kubeflowkatib/katib-db-manager:v0.16.0
+    upstream-source: docker.io/kubeflowkatib/katib-db-manager:v0.17.0-rc.0
 requires:
   mysql:
     interface: mysql
