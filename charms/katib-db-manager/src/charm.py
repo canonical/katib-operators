@@ -9,6 +9,7 @@ from charmed_kubeflow_chisme.kubernetes import KubernetesResourceHandler
 from charmed_kubeflow_chisme.lightkube.batch import delete_many
 from charmed_kubeflow_chisme.pebble import update_layer
 from charms.data_platform_libs.v0.data_interfaces import DatabaseRequires
+from charms.mlops_libs.v0.k8s_service_info import KubernetesServiceInfoProvider
 from charms.observability_libs.v1.kubernetes_service_patch import KubernetesServicePatch
 from lightkube import ApiError
 from lightkube.generic_resource import load_in_cluster_generic_resources
@@ -81,6 +82,14 @@ class KatibDBManagerOperator(CharmBase):
             self,
             [port],
             service_name=f"{self.model.app.name}",
+        )
+
+        # KubernetesServiceInfoProvider for broadcasting the service information
+        self._k8s_svc_info_provider = KubernetesServiceInfoProvider(
+            charm=self,
+            name=self._container_name,
+            port=str(self._port),
+            refresh_event=self.on.config_changed,
         )
 
     @property

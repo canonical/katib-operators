@@ -26,3 +26,6 @@ requires:
   relational-db:
     interface: mysql_client
     limit: 1
+provides:
+  k8s-service-info:
+    interface: k8s-service
