@@ -120,7 +120,9 @@ def test_no_k8s_service_info_relation(
 def test_many_k8s_service_info_relations(
     harness, mocked_lightkube_client, mocked_kubernetes_service_patch
 ):
-    """Test the k8s_service_info component and charm are not active when >1 k8s_service_info relations are present."""
+    """Test the k8s_service_info component and charm are not active when >1
+    k8s_service_info relations are present.
+    """
     harness.set_leader(True)
 
     setup_k8s_service_info_relation(harness, "remote-app-one")
