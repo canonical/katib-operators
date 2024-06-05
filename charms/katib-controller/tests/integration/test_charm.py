@@ -12,6 +12,12 @@ KATIB_CONFIG = "katib-config"
 KATIB_DB_MANAGER = "katib-db-manager"
 KATIB_DB_MANAGER_CHANNEL = "latest/edge"
 KATIB_DB_MANAGER_TRUST = True
+KATIB_DB_CHARM = "mysql-k8s"
+KATIB_DB = "katib-db"
+KATIB_DB_CHANNEL = "8.0/stable"
+KATIB_DB_TRUST = True
+KATIB_DB = "katib-db"
+KATIB_DB_CONFIG = {"profile": "testing"}
 TRIAL_TEMPLATE = "trial-template"
 EXPECTED_KATIB_CONFIG = {
     "katib-config.yaml": "---\napiVersion: config.kubeflow.org/v1beta1\nkind: KatibConfig\ninit:\n  controller:\n    webhookPort: 443\n    trialResources:\n      - Job.v1.batch\n      - TFJob.v1.kubeflow.org\n      - PyTorchJob.v1.kubeflow.org\n      - MPIJob.v1.kubeflow.org\n      - XGBoostJob.v1.kubeflow.org\n      - MXJob.v1.kubeflow.org\nruntime:\n  metricsCollectors:\n    - kind: StdOut\n      image: docker.io/kubeflowkatib/file-metrics-collector:v0.17.0-rc.0\n    - kind: File\n      image: docker.io/kubeflowkatib/file-metrics-collector:v0.17.0-rc.0\n    - kind: TensorFlowEvent\n      image: docker.io/kubeflowkatib/tfevent-metrics-collector:v0.17.0-rc.0\n      resources:\n        limits:\n          memory: 1Gi\n  suggestions:\n    - algorithmName: random\n      image: docker.io/kubeflowkatib/suggestion-hyperopt:v0.17.0-rc.0\n    - algorithmName: tpe\n      image: docker.io/kubeflowkatib/suggestion-hyperopt:v0.17.0-rc.0\n    - algorithmName: grid\n      image: docker.io/kubeflowkatib/suggestion-optuna:v0.17.0-rc.0\n    - algorithmName: hyperband\n      image: docker.io/kubeflowkatib/suggestion-hyperband:v0.17.0-rc.0\n    - algorithmName: bayesianoptimization\n      image: docker.io/kubeflowkatib/suggestion-skopt:v0.17.0-rc.0\n    - algorithmName: cmaes\n      image: docker.io/kubeflowkatib/suggestion-goptuna:v0.17.0-rc.0\n    - algorithmName: sobol\n      image: docker.io/kubeflowkatib/suggestion-goptuna:v0.17.0-rc.0\n    - algorithmName: multivariate-tpe\n      image: docker.io/kubeflowkatib/suggestion-optuna:v0.17.0-rc.0\n    - algorithmName: enas\n      image: docker.io/kubeflowkatib/suggestion-enas:v0.17.0-rc.0\n      resources:\n        limits:\n          memory: 400Mi\n    - algorithmName: darts\n      image: docker.io/kubeflowkatib/suggestion-darts:v0.17.0-rc.0\n    - algorithmName: pbt\n      image: docker.io/kubeflowkatib/suggestion-pbt:v0.17.0-rc.0\n      persistentVolumeClaimSpec:\n        accessModes:\n          - ReadWriteMany\n        resources:\n          requests:\n            storage: 5Gi\n  earlyStoppings:\n    - algorithmName: medianstop\n      image: docker.io/kubeflowkatib/earlystopping-medianstop:v0.17.0-rc.0",  # noqa: E501
@@ -44,6 +50,7 @@ class TestCharm:
 
         Assert on the unit status.
         """
+        # Deploy dependencies katib-db-manager and katib-db which is a dependency of the latter.
         # Building the charm as a temporary workaround since this PR introduces a new relation.
         # Once this PR is merged, a follow-up PR will remove the following code
         # and uncomment the line below.
@@ -57,6 +64,14 @@ class TestCharm:
         # await ops_test.model.deploy(
         #     KATIB_DB_MANAGER, channel=KATIB_DB_MANAGER_CHANNEL, trust=KATIB_DB_MANAGER_TRUST
         # )
+        await ops_test.model.deploy(
+            KATIB_DB_CHARM,
+            application_name=KATIB_DB,
+            channel=KATIB_DB_CHANNEL,
+            trust=KATIB_DB_TRUST,
+            config=KATIB_DB_CONFIG,
+        )
+        await ops_test.model.integrate(f"{KATIB_DB}:database", f"{KATIB_DB_MANAGER}:relational-db")
 
         charm_under_test = await ops_test.build_charm(".")
         image_path = METADATA["resources"]["oci-image"]["upstream-source"]
@@ -68,11 +83,9 @@ class TestCharm:
             application_name=CHARM_NAME,
             trust=True,
         )
-        await ops_test.model.add_relation(CHARM_NAME, KATIB_DB_MANAGER)
+        await ops_test.model.integrate(CHARM_NAME, KATIB_DB_MANAGER)
 
-        await ops_test.model.wait_for_idle(
-            apps=[CHARM_NAME], status="active", raise_on_blocked=True, timeout=300
-        )
+        await ops_test.model.wait_for_idle(apps=[CHARM_NAME], status="active", timeout=300)
 
     async def test_configmap_created(self, lightkube_client: lightkube.Client, ops_test: OpsTest):
         """Test configmaps contents with default coonfig."""
