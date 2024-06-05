@@ -45,7 +45,8 @@ class TestCharm:
         Assert on the unit status.
         """
         # Building the charm as a temporary workaround since this PR introduces a new relation.
-        # Once this PR is merged, a follow-up will remove the following code and uncomment the line below.
+        # Once this PR is merged, a follow-up PR will remove the following code
+        # and uncomment the line below.
         db_manager_path = Path("../katib-db-manager")
         db_manager_metadata = yaml.safe_load(Path(f"{db_manager_path}/metadata.yaml").read_text())
         db__manager_image_path = db_manager_metadata["resources"]["oci-image"]["upstream-source"]
