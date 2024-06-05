@@ -60,6 +60,7 @@ async def test_deploy_katib_charms(ops_test: OpsTest):
 
     # Relate to katib-db
     await ops_test.model.add_relation("katib-db-manager", "katib-db")
+    await ops_test.model.add_relation("katib-db-manager", "katib-controller")
 
     await ops_test.model.wait_for_idle(
         status="active",
