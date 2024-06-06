@@ -71,7 +71,7 @@ class KatibUIOperator(CharmBase):
                     type="item",
                     icon="kubeflow:katib",
                     location="menu",
-                )
+                ),
             ],
         )
 
