@@ -66,17 +66,12 @@ class KatibUIOperator(CharmBase):
             relation_name="dashboard-links",
             dashboard_links=[
                 DashboardLink(
-                    text="Experiments (AutoML)",
+                    text="Katib Experiments",
                     link="/katib/",
                     type="item",
                     icon="kubeflow:katib",
                     location="menu",
-                ),
-                DashboardLink(
-                    text="View Katib Experiments",
-                    link="/katib/",
-                    location="quick",
-                ),
+                )
             ],
         )
 
