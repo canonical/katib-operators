@@ -49,10 +49,10 @@ class TestCharm:
         # and uncomment the line below.
         db_manager_path = Path("../katib-db-manager")
         db_manager_metadata = yaml.safe_load(Path(f"{db_manager_path}/metadata.yaml").read_text())
-        db__manager_image_path = db_manager_metadata["resources"]["oci-image"]["upstream-source"]
+        db_manager_image_path = db_manager_metadata["resources"]["oci-image"]["upstream-source"]
         db_manager_charm = await ops_test.build_charm(db_manager_path)
         await ops_test.model.deploy(
-            db_manager_charm, resources={"oci-image": db__manager_image_path}, trust=True
+            db_manager_charm, resources={"oci-image": db_manager_image_path}, trust=True
         )
         # await ops_test.model.deploy(
         #     KATIB_DB_MANAGER, channel=KATIB_DB_MANAGER_CHANNEL, trust=True
