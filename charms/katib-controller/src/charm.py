@@ -158,7 +158,7 @@ class KatibControllerOperator(CharmBase):
         with tempfile.NamedTemporaryFile(delete=False) as ca_file:
             ca_file.write(self._stored.ca.encode("utf-8"))
 
-        self.k8s_service_info = self.charm_reconciler.add(
+        self.k8s_service_info_requirer = self.charm_reconciler.add(
             component=K8sServiceInfoRequirerComponent(charm=self),
             depends_on=[self.leadership_gate],
         )
@@ -191,11 +191,15 @@ class KatibControllerOperator(CharmBase):
                 inputs_getter=lambda: KatibControllerInputs(
                     NAMESPACE=self.model.name,
                     KATIB_DB_MANAGER_SERVICE_PORT=(
-                        self.k8s_service_info.component.get_service_info().port
+                        self.k8s_service_info_requirer.component.get_service_info().port
                     ),
                 ),
             ),
-            depends_on=[self.leadership_gate, self.kubernetes_resources, self.k8s_service_info],
+            depends_on=[
+                self.leadership_gate,
+                self.kubernetes_resources,
+                self.k8s_service_info_requirer,
+            ],
         )
 
         self.charm_reconciler.install_default_event_handlers()
