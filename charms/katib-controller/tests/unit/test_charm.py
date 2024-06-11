@@ -111,9 +111,9 @@ def test_no_k8s_service_info_relation(
 
     assert (
         "Missing relation with a k8s service info provider. Please add the missing relation."
-        in harness.charm.k8s_service_info.status.message
+        in harness.charm.k8s_service_info_requirer.status.message
     )
-    assert isinstance(harness.charm.k8s_service_info.status, BlockedStatus)
+    assert isinstance(harness.charm.k8s_service_info_requirer.status, BlockedStatus)
     assert not isinstance(harness.charm.model.unit.status, ActiveStatus)
 
 
@@ -131,7 +131,7 @@ def test_many_k8s_service_info_relations(
     harness.begin_with_initial_hooks()
 
     with pytest.raises(TooManyRelatedAppsError) as error:
-        harness.charm.k8s_service_info.get_status()
+        harness.charm.k8s_service_info_requirer.get_status()
 
     assert "Too many remote applications on k8s-service-info (2 > 1)" in error.value.args
     assert not isinstance(harness.charm.model.unit.status, ActiveStatus)
