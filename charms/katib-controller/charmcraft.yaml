@@ -9,3 +9,5 @@ bases:
 parts:
   charm:
     charm-python-packages: [setuptools, pip]
+    # Pydantic build dependencies
+    build-packages: [cargo, rustc, pkg-config, libffi-dev, libssl-dev]

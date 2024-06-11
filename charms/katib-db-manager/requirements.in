@@ -1,3 +1,7 @@
 charmed-kubeflow-chisme
 lightkube
 ops
+# This is a requirement from the k8s_service_info library
+# Pin due to https://github.com/canonical/bundle-kubeflow/issues/926
+# Remove this pin when the base OS can install rustc v1.76 or newer.
+pydantic>=2.6,<2.7

@@ -32,6 +32,7 @@ from ops.framework import StoredState
 from ops.main import main
 
 from certs import gen_certs
+from components.k8s_service_info_requirer_component import K8sServiceInfoRequirerComponent
 from components.pebble_component import KatibControllerInputs, KatibControllerPebbleService
 
 DEFAULT_IMAGES_FILE = "src/default-custom-images.json"
@@ -157,6 +158,11 @@ class KatibControllerOperator(CharmBase):
         with tempfile.NamedTemporaryFile(delete=False) as ca_file:
             ca_file.write(self._stored.ca.encode("utf-8"))
 
+        self.k8s_service_info_requirer = self.charm_reconciler.add(
+            component=K8sServiceInfoRequirerComponent(charm=self),
+            depends_on=[self.leadership_gate],
+        )
+
         self.katib_controller_container = self.charm_reconciler.add(
             component=KatibControllerPebbleService(
                 charm=self,
@@ -182,9 +188,18 @@ class KatibControllerOperator(CharmBase):
                         context_function=self._katib_config_context,
                     ),
                 ],
-                inputs_getter=lambda: KatibControllerInputs(NAMESPACE=self.model.name),
+                inputs_getter=lambda: KatibControllerInputs(
+                    NAMESPACE=self.model.name,
+                    KATIB_DB_MANAGER_SERVICE_PORT=(
+                        self.k8s_service_info_requirer.component.get_service_info().port
+                    ),
+                ),
             ),
-            depends_on=[self.leadership_gate, self.kubernetes_resources],
+            depends_on=[
+                self.leadership_gate,
+                self.kubernetes_resources,
+                self.k8s_service_info_requirer,
+            ],
         )
 
         self.charm_reconciler.install_default_event_handlers()
