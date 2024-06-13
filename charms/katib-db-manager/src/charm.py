@@ -23,6 +23,8 @@ K8S_RESOURCE_FILES = [
 ]
 MYSQL_WARNING = "Relation mysql is deprecated."
 UNBLOCK_MESSAGE = "Remove deprecated mysql relation to unblock."
+# Value is hardcoded in upstream
+# https://github.com/kubeflow/katib/blob/ca903e25e598d3232026380098465bf84c352380/cmd/db-manager/v1beta1/main.go#L38
 SERVICE_PORT = "6789"
 
 
