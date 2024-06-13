@@ -38,7 +38,6 @@ class KatibDBManagerOperator(CharmBase):
         self._database_name = "katib"
         self._container = self.unit.get_container(self._container_name)
         self._exec_command = "./katib-db-manager"
-        self._port = SERVICE_PORT
         self._lightkube_field_manager = "lightkube"
         self._namespace = self.model.name
         self._name = self.model.app.name
@@ -77,7 +76,7 @@ class KatibDBManagerOperator(CharmBase):
         self.framework.observe(self.database.on.database_created, self._on_relational_db_relation)
         self.framework.observe(self.database.on.endpoints_changed, self._on_relational_db_relation)
 
-        port = ServicePort(int(self._port), name="api")
+        port = ServicePort(int(SERVICE_PORT), name="api")
         self.service_patcher = KubernetesServicePatch(
             self,
             [port],
