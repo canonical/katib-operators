@@ -253,7 +253,13 @@ class Operator(CharmBase):
                                 "containerPort": self.model.config["metrics-port"],
                             },
                         ],
-                        "envConfig": {"KATIB_CORE_NAMESPACE": self.model.name},
+                        "envConfig": {
+                            "KATIB_CORE_NAMESPACE": self.model.name,
+                            # We hardcode the envvar's value due to
+                            # https://github.com/canonical/katib-operators/issues/108
+                            # Its value comes from `SERVICE_PORT` constant of katib-db-manager charm
+                            "KATIB_DB_MANAGER_SERVICE_PORT": "6789",
+                        },
                         "volumeConfig": [
                             {
                                 "name": "certs",

@@ -23,6 +23,9 @@ K8S_RESOURCE_FILES = [
 ]
 MYSQL_WARNING = "Relation mysql is deprecated."
 UNBLOCK_MESSAGE = "Remove deprecated mysql relation to unblock."
+# Value is hardcoded in upstream
+# https://github.com/kubeflow/katib/blob/release-0.16/cmd/db-manager/v1beta1/main.go#L38
+SERVICE_PORT = "6789"
 
 
 class KatibDBManagerOperator(CharmBase):
@@ -37,7 +40,6 @@ class KatibDBManagerOperator(CharmBase):
         self._database_name = "katib"
         self._container = self.unit.get_container(self._container_name)
         self._exec_command = "./katib-db-manager"
-        self._port = self.model.config["port"]
         self._lightkube_field_manager = "lightkube"
         self._namespace = self.model.name
         self._name = self.model.app.name
@@ -76,7 +78,7 @@ class KatibDBManagerOperator(CharmBase):
         self.framework.observe(self.database.on.database_created, self._on_relational_db_relation)
         self.framework.observe(self.database.on.endpoints_changed, self._on_relational_db_relation)
 
-        port = ServicePort(int(self._port), name="api")
+        port = ServicePort(int(SERVICE_PORT), name="api")
         self.service_patcher = KubernetesServicePatch(
             self,
             [port],
