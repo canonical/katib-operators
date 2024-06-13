@@ -23,6 +23,7 @@ K8S_RESOURCE_FILES = [
 ]
 MYSQL_WARNING = "Relation mysql is deprecated."
 UNBLOCK_MESSAGE = "Remove deprecated mysql relation to unblock."
+SERVICE_PORT = "6789"
 
 
 class KatibDBManagerOperator(CharmBase):
@@ -37,7 +38,7 @@ class KatibDBManagerOperator(CharmBase):
         self._database_name = "katib"
         self._container = self.unit.get_container(self._container_name)
         self._exec_command = "./katib-db-manager"
-        self._port = self.model.config["port"]
+        self._port = SERVICE_PORT
         self._lightkube_field_manager = "lightkube"
         self._namespace = self.model.name
         self._name = self.model.app.name
