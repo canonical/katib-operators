@@ -253,7 +253,10 @@ class Operator(CharmBase):
                                 "containerPort": self.model.config["metrics-port"],
                             },
                         ],
-                        "envConfig": {"KATIB_CORE_NAMESPACE": self.model.name},
+                        "envConfig": {
+                            "KATIB_CORE_NAMESPACE": self.model.name,
+                            "KATIB_DB_MANAGER_SERVICE_PORT": "6789",
+                        },
                         "volumeConfig": [
                             {
                                 "name": "certs",
