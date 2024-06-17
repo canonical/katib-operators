@@ -4,6 +4,11 @@ from pathlib import Path
 import pytest
 import yaml
 from charmed_kubeflow_chisme.exceptions import ErrorWithStatus
+from charmed_kubeflow_chisme.testing import (
+    GRAFANA_AGENT_APP,
+    assert_logging,
+    deploy_and_assert_grafana_agent,
+)
 from ops.model import RelationNotFoundError
 from pytest_operator.plugin import OpsTest
 
@@ -46,14 +51,6 @@ class TestCharm:
             timeout=60 * 10,
         )
 
-        await ops_test.model.wait_for_idle(
-            apps=[APP_NAME],
-            status="blocked",
-            raise_on_blocked=False,
-            raise_on_error=False,
-            timeout=60 * 10,
-        )
-
         # deploy mysql-k8s charm
         await ops_test.model.deploy("mysql-k8s", channel="8.0/stable", series="jammy", trust=True)
         await ops_test.model.wait_for_idle(
@@ -61,7 +58,6 @@ class TestCharm:
             status="active",
             raise_on_blocked=True,
             timeout=60 * 10,
-            idle_period=60
         )
 
         # test no database relation, charm should be in blocked state
@@ -79,6 +75,11 @@ class TestCharm:
             idle_period=60,
         )
         assert ops_test.model.applications[APP_NAME].units[0].workload_status == "active"
+
+        # Deploying grafana-agent-k8s and add all relations
+        await deploy_and_assert_grafana_agent(
+            ops_test.model, APP_NAME, metrics=False, dashboard=False, logging=True
+        )
 
     @pytest.mark.abort_on_fail
     async def test_relational_db_relation_with_mysql_relation(self, ops_test: OpsTest):
@@ -161,3 +162,7 @@ class TestCharm:
         )
         assert ops_test.model.applications[APP_NAME].units[0].workload_status == "blocked"
 
+    async def test_logging(self, ops_test: OpsTest):
+        """Test logging is defined in relation data bag."""
+        app = ops_test.model.applications[GRAFANA_AGENT_APP]
+        await assert_logging(app)

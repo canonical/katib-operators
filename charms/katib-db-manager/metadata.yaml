@@ -26,6 +26,9 @@ requires:
   relational-db:
     interface: mysql_client
     limit: 1
+  logging:
+    interface: loki_push_api
+    optional: true
 provides:
   k8s-service-info:
     interface: k8s-service
