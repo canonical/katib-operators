@@ -19,7 +19,7 @@ charmed-kubeflow-chisme==0.2.1
     # via -r requirements.in
 charset-normalizer==3.3.2
     # via requests
-cosl==0.0.11
+cosl==0.0.12
     # via -r requirements.in
 coverage==7.4.2
     # via -r requirements-unit.in
@@ -56,7 +56,7 @@ lightkube-models==1.29.0.7
     # via lightkube
 markupsafe==2.1.5
     # via jinja2
-ops==2.10.0
+ops==2.14.0
     # via
     #   -r requirements-unit.in
     #   -r requirements.in

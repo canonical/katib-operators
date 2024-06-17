@@ -17,6 +17,7 @@ from charmed_kubeflow_chisme.components.kubernetes_component import KubernetesCo
 from charmed_kubeflow_chisme.components.leadership_gate_component import LeadershipGateComponent
 from charmed_kubeflow_chisme.kubernetes import create_charm_default_labels
 from charms.grafana_k8s.v0.grafana_dashboard import GrafanaDashboardProvider
+from charms.loki_k8s.v1.loki_push_api import LogForwarder
 from charms.observability_libs.v1.kubernetes_service_patch import KubernetesServicePatch
 from charms.prometheus_k8s.v0.prometheus_scrape import MetricsEndpointProvider
 from lightkube.models.core_v1 import ServicePort
@@ -203,6 +204,7 @@ class KatibControllerOperator(CharmBase):
         )
 
         self.charm_reconciler.install_default_event_handlers()
+        self._logging = LogForwarder(charm=self)
 
     def get_images(
         self, default_images: Dict[str, str], custom_images: Dict[str, str]

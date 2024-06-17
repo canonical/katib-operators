@@ -1,10 +1,21 @@
+import logging
 from pathlib import Path
 
 import lightkube
 import pytest
 import yaml
+from charmed_kubeflow_chisme.testing import (
+    GRAFANA_AGENT_APP,
+    assert_alert_rules,
+    assert_logging,
+    assert_metrics_endpoint,
+    deploy_and_assert_grafana_agent,
+    get_alert_rules,
+)
 from lightkube.resources.core_v1 import ConfigMap
 from pytest_operator.plugin import OpsTest
+
+logger = logging.getLogger(__name__)
 
 METADATA = yaml.safe_load(Path("./metadata.yaml").read_text())
 CHARM_NAME = METADATA["name"]
@@ -60,6 +71,11 @@ class TestCharm:
 
         await ops_test.model.wait_for_idle(apps=[CHARM_NAME], status="active", timeout=300)
 
+        # Deploying grafana-agent-k8s and add all relations
+        await deploy_and_assert_grafana_agent(
+            ops_test.model, CHARM_NAME, metrics=True, dashboard=True, logging=True
+        )
+
     async def test_configmap_created(self, lightkube_client: lightkube.Client, ops_test: OpsTest):
         """Test configmaps contents with default coonfig."""
         katib_config_cm = lightkube_client.get(
@@ -99,3 +115,25 @@ class TestCharm:
             apps=[CHARM_NAME], status="blocked", raise_on_blocked=False, timeout=300
         )
         assert ops_test.model.applications[CHARM_NAME].units[0].workload_status == "blocked"
+
+    async def test_alert_rules(self, ops_test: OpsTest):
+        """Test check charm alert rules and rules defined in relation data bag."""
+        app = ops_test.model.applications[CHARM_NAME]
+        alert_rules = get_alert_rules()
+        logger.info("found alert_rules: %s", alert_rules)
+        await assert_alert_rules(app, alert_rules)
+
+    async def test_metrics_enpoint(self, ops_test: OpsTest):
+        """Test metrics_endpoints are defined in relation data bag and their accessibility.
+
+        This function gets all the metrics_endpoints from the relation data bag, checks if
+        they are available from the grafana-agent-k8s charm and finally compares them with the
+        ones provided to the function.
+        """
+        app = ops_test.model.applications[CHARM_NAME]
+        await assert_metrics_endpoint(app, metrics_port=8080, metrics_path="/metrics")
+
+    async def test_logging(self, ops_test: OpsTest):
+        """Test logging is defined in relation data bag."""
+        app = ops_test.model.applications[GRAFANA_AGENT_APP]
+        await assert_logging(app)
