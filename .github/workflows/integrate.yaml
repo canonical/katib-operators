@@ -64,6 +64,7 @@ jobs:
       matrix:
         charm:
           - katib-controller
+          - katib-db-manager
     steps:
       - uses: actions/checkout@v3
       - name: Setup operator environment
