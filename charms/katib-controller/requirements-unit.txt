@@ -56,7 +56,7 @@ lightkube-models==1.29.0.7
     # via lightkube
 markupsafe==2.1.5
     # via jinja2
-ops==2.10.0
+ops==2.14.0
     # via
     #   -r requirements-unit.in
     #   -r requirements.in
