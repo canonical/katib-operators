@@ -71,7 +71,7 @@ jobs:
         uses: charmed-kubernetes/actions-operator@main
         with:
           provider: microk8s
-          channel: 1.25-strict/stable
+          channel: 1.29-strict/stable
           juju-channel: 3.5/stable
           charmcraft-channel: latest/candidate
 
@@ -111,7 +111,7 @@ jobs:
         uses: charmed-kubernetes/actions-operator@main
         with:
           provider: microk8s
-          channel: 1.25-strict/stable
+          channel: 1.29-strict/stable
           juju-channel: 3.5/stable
           microk8s-addons: "dns storage rbac"
 
