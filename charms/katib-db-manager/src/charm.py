@@ -9,6 +9,7 @@ from charmed_kubeflow_chisme.kubernetes import KubernetesResourceHandler
 from charmed_kubeflow_chisme.lightkube.batch import delete_many
 from charmed_kubeflow_chisme.pebble import update_layer
 from charms.data_platform_libs.v0.data_interfaces import DatabaseRequires
+from charms.loki_k8s.v1.loki_push_api import LogForwarder
 from charms.mlops_libs.v0.k8s_service_info import KubernetesServiceInfoProvider
 from charms.observability_libs.v1.kubernetes_service_patch import KubernetesServicePatch
 from lightkube import ApiError
@@ -93,6 +94,8 @@ class KatibDBManagerOperator(CharmBase):
             port=str(SERVICE_PORT),
             refresh_event=self.on.config_changed,
         )
+
+        self._logging = LogForwarder(charm=self)
 
     @property
     def container(self):

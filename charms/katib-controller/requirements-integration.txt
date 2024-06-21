@@ -4,9 +4,11 @@
 #
 #    pip-compile requirements-integration.in
 #
-anyio==4.4.0
-    # via httpx
-asttokens==2.4.1
+anyio==4.0.0
+    # via httpcore
+appnope==0.1.4
+    # via ipython
+asttokens==2.4.0
     # via stack-data
 attrs==23.2.0
     # via jsonschema
