@@ -72,7 +72,7 @@ jobs:
         with:
           provider: microk8s
           channel: 1.29-strict/stable
-          juju-channel: 3.5/stable
+          juju-channel: 3.4/stable
           charmcraft-channel: latest/candidate
 
       - run: |
@@ -112,7 +112,7 @@ jobs:
         with:
           provider: microk8s
           channel: 1.29-strict/stable
-          juju-channel: 3.5/stable
+          juju-channel: 3.4/stable
           microk8s-addons: "dns storage rbac"
 
       - name: Run test
