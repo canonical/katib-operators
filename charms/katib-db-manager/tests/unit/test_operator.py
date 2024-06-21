@@ -41,6 +41,12 @@ def mocked_kubernetes_service_patcher(mocker):
     yield mocked_service_patcher
 
 
+def test_log_forwarding(harness: Harness, mocked_resource_handler, mocked_lightkube_client, mocked_kubernetes_service_patcher):
+    with patch("charm.LogForwarder") as mock_logging:
+        harness.begin()
+        mock_logging.assert_called_once_with(charm=harness.charm)
+
+
 def test_not_leader(
     harness, mocked_resource_handler, mocked_lightkube_client, mocked_kubernetes_service_patcher
 ):
