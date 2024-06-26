@@ -26,7 +26,7 @@ cffi==1.15.1
     # via
     #   cryptography
     #   pynacl
-charmed-kubeflow-chisme==0.2.0
+charmed-kubeflow-chisme==0.4.1
     # via -r requirements-integration.in
 charset-normalizer==3.2.0
     # via requests
@@ -78,6 +78,7 @@ jsonschema==4.17.3
 juju==3.2.2
     # via
     #   -r requirements-integration.in
+    #   charmed-kubeflow-chisme
     #   pytest-operator
 kubernetes==27.2.0
     # via juju
