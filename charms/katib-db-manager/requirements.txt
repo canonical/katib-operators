@@ -4,6 +4,8 @@
 #
 #    pip-compile requirements.in
 #
+annotated-types==0.7.0
+    # via pydantic
 anyio==3.7.1
     # via httpcore
 attrs==23.1.0
@@ -17,6 +19,8 @@ charmed-kubeflow-chisme==0.2.0
     # via -r requirements.in
 charset-normalizer==3.2.0
     # via requests
+cosl==0.0.12
+    # via -r requirements.in
 deepdiff==6.2.1
     # via charmed-kubeflow-chisme
 exceptiongroup==1.1.3
@@ -46,19 +50,25 @@ lightkube-models==1.27.1.4
     # via lightkube
 markupsafe==2.1.3
     # via jinja2
-ops==2.5.1
+ops==2.14.0
     # via
     #   -r requirements.in
     #   charmed-kubeflow-chisme
+    #   cosl
     #   serialized-data-interface
 ordered-set==4.1.0
     # via deepdiff
 pkgutil-resolve-name==1.3.10
     # via jsonschema
+pydantic==2.6.4
+    # via -r requirements.in
+pydantic-core==2.16.3
+    # via pydantic
 pyrsistent==0.19.3
     # via jsonschema
 pyyaml==6.0.1
     # via
+    #   cosl
     #   lightkube
     #   ops
     #   serialized-data-interface
@@ -77,6 +87,12 @@ sniffio==1.3.0
     #   httpx
 tenacity==8.2.3
     # via charmed-kubeflow-chisme
+typing-extensions==4.12.1
+    # via
+    #   annotated-types
+    #   cosl
+    #   pydantic
+    #   pydantic-core
 urllib3==2.0.4
     # via requests
 websocket-client==1.6.1

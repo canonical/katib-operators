@@ -29,7 +29,6 @@ PROFILE_RESOURCE = create_global_resource(
 )
 TRAINING_OPERATOR = "training-operator"
 TRAINING_OPERATOR_CHANNEL = "latest/edge"
-TRAINING_OPERATOR_TRUST = True
 
 
 @pytest.fixture(scope="module")
@@ -46,7 +45,7 @@ async def training_operator(ops_test: OpsTest):
     await ops_test.model.deploy(
         entity_url=TRAINING_OPERATOR,
         channel=TRAINING_OPERATOR_CHANNEL,
-        trust=TRAINING_OPERATOR_TRUST,
+        trust=True,
     )
     await ops_test.model.wait_for_idle(
         apps=[TRAINING_OPERATOR], status="active", raise_on_blocked=False, timeout=60 * 5

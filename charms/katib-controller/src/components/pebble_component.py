@@ -14,6 +14,7 @@ class KatibControllerInputs:
     """Defines the required inputs for KatibControllerPebbleService."""
 
     NAMESPACE: str
+    KATIB_DB_MANAGER_SERVICE_PORT: str
 
 
 class KatibControllerPebbleService(PebbleServiceComponent):
@@ -41,6 +42,9 @@ class KatibControllerPebbleService(PebbleServiceComponent):
                         "startup": "enabled",
                         "environment": {
                             "KATIB_CORE_NAMESPACE": str(inputs.NAMESPACE).lower(),
+                            "KATIB_DB_MANAGER_SERVICE_PORT": str(
+                                inputs.KATIB_DB_MANAGER_SERVICE_PORT
+                            ),
                         },
                     }
                 },

@@ -6,7 +6,7 @@ from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
-from ops.model import ActiveStatus
+from ops.model import ActiveStatus, BlockedStatus, TooManyRelatedAppsError
 from ops.testing import Harness
 
 from charm import KatibControllerOperator
@@ -14,6 +14,8 @@ from charm import KatibControllerOperator
 IMAGES_CONTEXT = json.loads(Path("src/default-custom-images.json").read_text())
 
 TEST_NAMESPACE = "test-namespace"
+K8S_SERVICE_INFO_RELATION_NAME = "k8s-service-info"
+K8S_SERVICE_INFO_RELATION_DATA = {"name": "service-name", "port": "1234"}
 EXPECTED_PEBBLE_LAYER = {
     "services": {
         "katib-controller": {
@@ -23,6 +25,7 @@ EXPECTED_PEBBLE_LAYER = {
             "startup": "enabled",
             "environment": {
                 "KATIB_CORE_NAMESPACE": f"{TEST_NAMESPACE}",
+                "KATIB_DB_MANAGER_SERVICE_PORT": f"{K8S_SERVICE_INFO_RELATION_DATA['port']}",
             },
         }
     }
@@ -99,13 +102,49 @@ def test_get_certs(harness, mocked_lightkube_client, mocked_kubernetes_service_p
         assert hasattr(harness.charm._stored, attr)
 
 
+def test_no_k8s_service_info_relation(
+    harness, mocked_lightkube_client, mocked_kubernetes_service_patch
+):
+    """Test the k8s_service_info component and charm are not active when no relation is present."""
+    harness.set_leader(True)
+    harness.begin_with_initial_hooks()
+
+    assert (
+        "Missing relation with a k8s service info provider. Please add the missing relation."
+        in harness.charm.k8s_service_info_requirer.status.message
+    )
+    assert isinstance(harness.charm.k8s_service_info_requirer.status, BlockedStatus)
+    assert not isinstance(harness.charm.model.unit.status, ActiveStatus)
+
+
+def test_many_k8s_service_info_relations(
+    harness, mocked_lightkube_client, mocked_kubernetes_service_patch
+):
+    """Test the k8s_service_info component and charm are not active when >1
+    k8s_service_info relations are present.
+    """
+    harness.set_leader(True)
+
+    setup_k8s_service_info_relation(harness, "remote-app-one")
+    setup_k8s_service_info_relation(harness, "remote-app-two")
+
+    harness.begin_with_initial_hooks()
+
+    with pytest.raises(TooManyRelatedAppsError) as error:
+        harness.charm.k8s_service_info_requirer.get_status()
+
+    assert "Too many remote applications on k8s-service-info (2 > 1)" in error.value.args
+    assert not isinstance(harness.charm.model.unit.status, ActiveStatus)
+
+
 def test_pebble_services_running(
     harness, mocked_lightkube_client, mocked_kubernetes_service_patch
 ):
     """Test that if the Kubernetes Component is Active, the pebble services successfully start."""
     # Arrange
     harness.set_model_name(TEST_NAMESPACE)
-    harness.begin()
+    setup_k8s_service_info_relation(harness, "remote-test-app")
+    harness.begin_with_initial_hooks()
     harness.set_can_connect("katib-controller", True)
 
     # Mock:
@@ -123,3 +162,12 @@ def test_pebble_services_running(
     assert service.is_running()
     actual_layer = harness.get_container_pebble_plan("katib-controller").to_dict()
     assert EXPECTED_PEBBLE_LAYER == actual_layer
+
+
+def setup_k8s_service_info_relation(harness: Harness, name: str):
+    rel_id = harness.add_relation(
+        relation_name=K8S_SERVICE_INFO_RELATION_NAME,
+        remote_app=name,
+        app_data=K8S_SERVICE_INFO_RELATION_DATA,
+    )
+    return rel_id

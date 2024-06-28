@@ -9,6 +9,8 @@ from charmed_kubeflow_chisme.kubernetes import KubernetesResourceHandler
 from charmed_kubeflow_chisme.lightkube.batch import delete_many
 from charmed_kubeflow_chisme.pebble import update_layer
 from charms.data_platform_libs.v0.data_interfaces import DatabaseRequires
+from charms.loki_k8s.v1.loki_push_api import LogForwarder
+from charms.mlops_libs.v0.k8s_service_info import KubernetesServiceInfoProvider
 from charms.observability_libs.v1.kubernetes_service_patch import KubernetesServicePatch
 from lightkube import ApiError
 from lightkube.generic_resource import load_in_cluster_generic_resources
@@ -23,6 +25,9 @@ K8S_RESOURCE_FILES = [
 ]
 MYSQL_WARNING = "Relation mysql is deprecated."
 UNBLOCK_MESSAGE = "Remove deprecated mysql relation to unblock."
+# Value is hardcoded in upstream
+# https://github.com/kubeflow/katib/blob/7959ffd54851216dbffba791e1da13c8485d1085/cmd/db-manager/v1beta1/main.go#L38
+SERVICE_PORT = 6789
 
 
 class KatibDBManagerOperator(CharmBase):
@@ -37,7 +42,6 @@ class KatibDBManagerOperator(CharmBase):
         self._database_name = "katib"
         self._container = self.unit.get_container(self._container_name)
         self._exec_command = "./katib-db-manager"
-        self._port = self.model.config["port"]
         self._lightkube_field_manager = "lightkube"
         self._namespace = self.model.name
         self._name = self.model.app.name
@@ -76,12 +80,22 @@ class KatibDBManagerOperator(CharmBase):
         self.framework.observe(self.database.on.database_created, self._on_relational_db_relation)
         self.framework.observe(self.database.on.endpoints_changed, self._on_relational_db_relation)
 
-        port = ServicePort(int(self._port), name="api")
+        port = ServicePort(int(SERVICE_PORT), name="api")
         self.service_patcher = KubernetesServicePatch(
             self,
             [port],
             service_name=f"{self.model.app.name}",
         )
+
+        # KubernetesServiceInfoProvider for broadcasting the service information
+        self._k8s_svc_info_provider = KubernetesServiceInfoProvider(
+            charm=self,
+            name=self._container_name,
+            port=str(SERVICE_PORT),
+            refresh_event=self.on.config_changed,
+        )
+
+        self._logging = LogForwarder(charm=self)
 
     @property
     def container(self):
