@@ -72,6 +72,12 @@ class KatibUIOperator(CharmBase):
                     icon="kubeflow:katib",
                     location="menu",
                 ),
+                DashboardLink(
+                    text="Katib Documentation",
+                    link="https://www.kubeflow.org/docs/components/katib/",
+                    desc="Documentation for Katib",
+                    location="documentation"
+                )
             ],
         )
 
