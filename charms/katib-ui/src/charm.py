@@ -76,8 +76,8 @@ class KatibUIOperator(CharmBase):
                     text="Katib Documentation",
                     link="https://www.kubeflow.org/docs/components/katib/",
                     desc="Documentation for Katib",
-                    location="documentation"
-                )
+                    location="documentation",
+                ),
             ],
         )
 
