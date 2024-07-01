@@ -3,7 +3,7 @@
 
 import json
 from pathlib import Path
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 from ops.model import ActiveStatus, BlockedStatus, TooManyRelatedAppsError
@@ -53,6 +53,12 @@ def mocked_kubernetes_service_patch(mocker):
         "charm.KubernetesServicePatch", lambda x, y, service_name: None
     )
     yield mocked_kubernetes_service_patch
+
+
+def test_log_forwarding(harness, mocked_lightkube_client, mocked_kubernetes_service_patch):
+    with patch("charm.LogForwarder") as mock_logging:
+        harness.begin()
+        mock_logging.assert_called_once_with(charm=harness.charm)
 
 
 def test_not_leader(harness, mocked_lightkube_client, mocked_kubernetes_service_patch):

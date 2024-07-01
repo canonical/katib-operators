@@ -25,3 +25,6 @@ requires:
   k8s-service-info:
     interface: k8s-service
     limit: 1
+  logging:
+    interface: loki_push_api
+    optional: true
