@@ -2,7 +2,7 @@ from contextlib import nullcontext as does_not_raise
 from unittest.mock import MagicMock, patch
 
 import pytest
-from charmed_kubeflow_chisme.exceptions import ErrorWithStatus, GenericCharmRuntimeError
+from charmed_kubeflow_chisme.exceptions import ErrorWithStatus
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, WaitingStatus
 from ops.pebble import CheckStatus
 from ops.testing import Harness
@@ -41,7 +41,12 @@ def mocked_kubernetes_service_patcher(mocker):
     yield mocked_service_patcher
 
 
-def test_log_forwarding(harness: Harness, mocked_resource_handler, mocked_lightkube_client, mocked_kubernetes_service_patcher):
+def test_log_forwarding(
+    harness: Harness,
+    mocked_resource_handler,
+    mocked_lightkube_client,
+    mocked_kubernetes_service_patcher,
+):
     with patch("charm.LogForwarder") as mock_logging:
         harness.begin()
         mock_logging.assert_called_once_with(charm=harness.charm)
@@ -145,8 +150,11 @@ def test_apply_k8s_resources_success(
     mocked_resource_handler.apply.assert_called()
     assert isinstance(harness.charm.model.unit.status, MaintenanceStatus)
 
+
 # FIXME: re-enable test when https://github.com/canonical/katib-operators/issues/128 is closed.
-@pytest.mark.skip("Skipping due to Pebble health checks being disabled. Re-enable when #128 is closed.")
+@pytest.mark.skip(
+    "Skipping due to Pebble health checks being disabled. Re-enable when #128 is closed."
+)
 @patch("charm.KatibDBManagerOperator._get_check_status")
 @pytest.mark.parametrize(
     "health_check_status, charm_status",
@@ -178,9 +186,7 @@ def test_update_status(
         }
     }
     database.fetch_relation_data = fetch_relation_data
-    harness.model.get_relation = MagicMock(
-        side_effect=_get_relation_db_only_side_effect_func
-    )
+    harness.model.get_relation = MagicMock(side_effect=_get_relation_db_only_side_effect_func)
     harness.set_leader(True)
     harness.begin_with_initial_hooks()
     harness.charm.database = database
@@ -192,12 +198,14 @@ def test_update_status(
     harness.charm.on.update_status.emit()
     assert harness.charm.model.unit.status == charm_status
 
+
 def _get_relation_db_only_side_effect_func(relation):
     """Returns relational-db relation with some data."""
     if relation == "mysql":
         return None
     if relation == "relational-db":
         return {"some-data": True}
+
 
 def test_relational_db_relation_no_data(
     harness, mocked_resource_handler, mocked_lightkube_client, mocked_kubernetes_service_patcher
@@ -208,15 +216,14 @@ def test_relational_db_relation_no_data(
     # setup empty data for library function to return
     fetch_relation_data.return_value = {}
     database.fetch_relation_data = fetch_relation_data
-    harness.model.get_relation = MagicMock(
-        side_effect=_get_relation_db_only_side_effect_func
-    )
+    harness.model.get_relation = MagicMock(side_effect=_get_relation_db_only_side_effect_func)
     harness.begin()
     harness.charm.database = database
     with pytest.raises(ErrorWithStatus) as err:
         harness.charm._get_db_data()
     assert err.value.status_type(WaitingStatus)
     assert "Waiting for relational-db data" in str(err)
+
 
 def test_relational_db_relation_missing_attributes(
     harness, mocked_resource_handler, mocked_lightkube_client, mocked_kubernetes_service_patcher
@@ -227,15 +234,14 @@ def test_relational_db_relation_missing_attributes(
     # setup empty data for library function to return
     fetch_relation_data.return_value = {"test-db-data": {"password": "password1"}}
     database.fetch_relation_data = fetch_relation_data
-    harness.model.get_relation = MagicMock(
-        side_effect=_get_relation_db_only_side_effect_func
-    )
+    harness.model.get_relation = MagicMock(side_effect=_get_relation_db_only_side_effect_func)
     harness.begin()
     harness.charm.database = database
     with pytest.raises(ErrorWithStatus) as err:
         harness.charm._get_db_data()
     assert err.value.status_type(WaitingStatus)
     assert "Incorrect/incomplete data found in relation relational-db. See logs" in str(err)
+
 
 def test_relational_db_relation_bad_data(
     harness, mocked_resource_handler, mocked_lightkube_client, mocked_kubernetes_service_patcher
@@ -246,15 +252,14 @@ def test_relational_db_relation_bad_data(
     # setup bad data for library function to return
     fetch_relation_data.return_value = {"test-db-data": {"bad": "data"}}
     database.fetch_relation_data = fetch_relation_data
-    harness.model.get_relation = MagicMock(
-        side_effect=_get_relation_db_only_side_effect_func
-    )
+    harness.model.get_relation = MagicMock(side_effect=_get_relation_db_only_side_effect_func)
     harness.begin()
     harness.charm.database = database
     with pytest.raises(ErrorWithStatus) as err:
         harness.charm._get_db_data()
     assert err.value.status_type(WaitingStatus)
     assert "Incorrect/incomplete data found in relation relational-db. See logs" in str(err)
+
 
 def test_relational_db_relation_with_data(
     harness, mocked_resource_handler, mocked_lightkube_client, mocked_kubernetes_service_patcher
@@ -270,9 +275,7 @@ def test_relational_db_relation_with_data(
         }
     }
     database.fetch_relation_data = fetch_relation_data
-    harness.model.get_relation = MagicMock(
-        side_effect=_get_relation_db_only_side_effect_func
-    )
+    harness.model.get_relation = MagicMock(side_effect=_get_relation_db_only_side_effect_func)
     harness.begin()
     harness.charm.database = database
     res = harness.charm._get_db_data()
@@ -282,6 +285,6 @@ def test_relational_db_relation_with_data(
             "db_username": "username",
             "db_password": "password",
             "katib_db_host": "host",
-            "katib_db_port": "1234",            
+            "katib_db_port": "1234",
             "katib_db_name": "database",
         }
