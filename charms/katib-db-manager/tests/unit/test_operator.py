@@ -1,4 +1,3 @@
-from contextlib import nullcontext as does_not_raise
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -77,59 +76,31 @@ def test_no_relation(
     harness.begin_with_initial_hooks()
     harness.container_pebble_ready("katib-db-manager")
     assert harness.charm.model.unit.status == BlockedStatus(
-        "Please add required database relation: eg. relational-db"
+        "Please add required database relation: relational-db"
     )
-
-
-def test_mysql_relation(
-    harness, mocked_resource_handler, mocked_lightkube_client, mocked_kubernetes_service_patcher
-):
-    "Test that no error is raised when mysql complete relation exists."
-    harness.begin()
-
-    mysql_app = "mysql_app"
-    mysql_unit = f"{mysql_app}/0"
-
-    rel_id = harness.add_relation("mysql", mysql_app)
-    harness.add_relation_unit(rel_id, mysql_unit)
-
-    # Test complete relation
-    data = {
-        "database": "database",
-        "host": "host",
-        "root_password": "root_password",
-        "port": "port",
-        "user": "user1",
-    }
-    harness.update_relation_data(rel_id, mysql_unit, data)
-    with does_not_raise():
-        harness.charm._get_db_data()
 
 
 def test_pebble_layer(
     harness, mocked_resource_handler, mocked_lightkube_client, mocked_kubernetes_service_patcher
 ):
     """
-    Test creation of Pebble layer given that mysql relation is complete.
+    Test creation of Pebble layer given that relational-db relation is complete.
     Only testing specific items.
     """
     harness.set_model_name("test_kubeflow")
-    harness.begin_with_initial_hooks()
-    mysql_app = "mysql_app"
-    mysql_unit = f"{mysql_app}/0"
-
-    rel_id = harness.add_relation("mysql", mysql_app)
-    harness.add_relation_unit(rel_id, mysql_unit)
-
-    # Test complete relation
-    data = {
-        "database": "database",
-        "host": "host",
-        "root_password": "root_password",
-        "port": "port",
-        "user": "user1",
+    database = MagicMock()
+    fetch_relation_data = MagicMock()
+    fetch_relation_data.return_value = {
+        "test-db-data": {
+            "endpoints": "host:1234",
+            "username": "username",
+            "password": "password",
+        }
     }
-    harness.update_relation_data(rel_id, mysql_unit, data)
+    database.fetch_relation_data = fetch_relation_data
+    harness.model.get_relation = MagicMock(side_effect=_get_relation_db_only_side_effect_func)
+    harness.begin()
+    harness.charm.database = database
     harness.container_pebble_ready("katib-db-manager")
     pebble_plan = harness.get_container_pebble_plan("katib-db-manager")
     assert pebble_plan
