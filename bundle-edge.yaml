@@ -2,25 +2,31 @@ bundle: kubernetes
 applications:
   katib-controller:
     charm: katib-controller
+    channel: latest/edge
     scale: 1
+    trust: true
     resources:
       oci-image: docker.io/kubeflowkatib/katib-controller:latest
   katib-db:
-    charm: cs:~charmed-osm/mariadb-k8s
+    charm: mysql-k8s
+    channel: 8.0/stable
     scale: 1
-    options:
-      database: katib
+    trust: true
+    constraints: mem=2G
   katib-db-manager:
     charm: katib-db-manager
+    channel: latest/edge
     scale: 1
     trust: true
     resources:
       oci-image: docker.io/kubeflowkatib/katib-db-manager:latest
   katib-ui:
     charm: katib-ui
+    channel: latest/edge
     scale: 1
     trust: true
     resources:
       oci-image: docker.io/kubeflowkatib/katib-ui:latest
 relations:
-- [katib-db-manager, katib-db]
+- [katib-controller, katib-db-manager]
+- [katib-db-manager:relational-db, katib-db:database]

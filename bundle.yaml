@@ -1,8 +1,9 @@
 bundle: kubernetes
 applications:
-  katib-controller: { charm: katib-controller,            scale: 1 }
-  katib-db:         { charm: charmed-osm-mariadb-k8s,     scale: 1, options: { database: katib } }
+  katib-controller: { charm: katib-controller,            scale: 1,            trust: true }
+  katib-db:         { charm: ch:mysql-k8s,                scale: 1,            trust: true,            constraints: mem=2G }
   katib-db-manager: { charm: katib-db-manager,            scale: 1,            trust: true }
   katib-ui:         { charm: katib-ui,                    scale: 1,            trust: true }
 relations:
-- [katib-db-manager, katib-db]
+- [katib-controller, katib-db-manager]
+- [katib-db-manager:relational-db, katib-db:database]

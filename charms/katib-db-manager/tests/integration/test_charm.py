@@ -15,7 +15,11 @@ logger = logging.getLogger(__name__)
 
 METADATA = yaml.safe_load(Path("./metadata.yaml").read_text())
 APP_NAME = "katib-db-manager"
-KATIB_DB_CONFIG = {"database": "katib"}
+
+DB_APP_NAME = "katib-db"
+MYSQL = "mysql-k8s"
+MYSQL_CHANNEL = "8.0/stable"
+MYSQL_CONFIG = {"profile": "testing"}
 
 
 class TestCharm:
@@ -45,15 +49,15 @@ class TestCharm:
 
         # deploy mysql-k8s charm
         await ops_test.model.deploy(
-            entity_url="mysql-k8s",
-            application_name="katib-db",
-            channel="8.0/stable",
-            series="jammy",
+            entity_url=MYSQL,
+            application_name=DB_APP_NAME,
+            channel=MYSQL_CHANNEL,
+            config=MYSQL_CONFIG,
             trust=True,
         )
 
         await ops_test.model.wait_for_idle(
-            apps=["katib-db"],
+            apps=[DB_APP_NAME],
             status="active",
             raise_on_blocked=False,
             raise_on_error=False,
@@ -73,7 +77,7 @@ class TestCharm:
         """Test no relation and relation with mysql-k8s charm."""
 
         # add relational-db relation which should put charm into active state
-        await ops_test.model.integrate(f"{APP_NAME}:relational-db", "katib-db:database")
+        await ops_test.model.integrate(f"{APP_NAME}:relational-db", f"{DB_APP_NAME}:database")
 
         # verify that charm goes into active state
         await ops_test.model.wait_for_idle(
