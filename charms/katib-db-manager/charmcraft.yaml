@@ -8,6 +8,6 @@ bases:
       channel: "20.04"
 parts:
   charm:
-    charm-python-packages: [setuptools, pip]
+    charm-python-packages: [setuptools <= 72, pip]
     # Pydantic build dependencies
     build-packages: [cargo, rustc, pkg-config, libffi-dev, libssl-dev]
