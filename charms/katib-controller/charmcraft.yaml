@@ -8,5 +8,5 @@ bases:
       channel: "20.04"
 parts:
   charm:
-    # Pydantic build dependencies
+    # Pydantic build dependencies s
     build-packages: [cargo, rustc, pkg-config, libffi-dev, libssl-dev]
