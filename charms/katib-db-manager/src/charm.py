@@ -141,7 +141,7 @@ class KatibDBManagerOperator(CharmBase):
             "description": "Pebble config layer for katib-db-manager operator",
             "services": {
                 self._container_name: {
-                    "override": "replace",
+                    "override": "merge",
                     "summary": "Pebble service for katib-db-manager operator",
                     "startup": "enabled",
                     "command": self._exec_command,
