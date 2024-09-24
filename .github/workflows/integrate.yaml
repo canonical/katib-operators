@@ -67,6 +67,7 @@ jobs:
           - katib-ui
     with:
       charm-path: ./charms/${{ matrix.charm }}
+      channel: 0.17/stable
 
   charm-integration:
     name: Integration tests (microk8s)
