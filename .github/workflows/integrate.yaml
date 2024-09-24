@@ -55,7 +55,19 @@ jobs:
       - uses: actions/checkout@v3
       - run: python3 -m pip install tox
       - run: tox -e ${{ matrix.charm }}-unit
-  
+
+  terraform-checks:
+    name: Terraform
+    uses: canonical/charmed-kubeflow-workflows/.github/workflows/terraform-checks.yaml@main
+    strategy:
+      matrix:
+        charm:
+          - katib-controller
+          - katib-db-manager
+          - katib-ui
+    with:
+      charm-path: ./charms/${{ matrix.charm }}
+
   charm-integration:
     name: Integration tests (microk8s)
     runs-on: ubuntu-20.04
