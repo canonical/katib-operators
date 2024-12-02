@@ -30,7 +30,7 @@ MYSQL = "mysql-k8s"
 MYSQL_CHANNEL = "8.0/stable"
 MYSQL_CONFIG = {"profile": "testing"}
 MYSQL_TRUST = True
-MYSQL_CONSTRAINTS = {"mem": "2G"}
+MYSQL_CONSTRAINTS = {"mem": 2048}
 
 logger = logging.getLogger(__name__)
 
@@ -74,7 +74,6 @@ async def test_deploy_katib_charms(ops_test: OpsTest):
         f"{DB_MANAGER_APP_NAME}:relational-db", f"{DB_APP_NAME}:database"
     )
     await ops_test.model.add_relation(DB_MANAGER_APP_NAME, CONTROLLER_APP_NAME)
-
     await ops_test.model.wait_for_idle(
         status="active",
         raise_on_blocked=False,
