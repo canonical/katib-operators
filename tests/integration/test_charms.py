@@ -30,6 +30,7 @@ MYSQL = "mysql-k8s"
 MYSQL_CHANNEL = "8.0/stable"
 MYSQL_CONFIG = {"profile": "testing"}
 MYSQL_TRUST = True
+MYSQL_CONSTRAINTS = {"mem": "2G"}
 
 logger = logging.getLogger(__name__)
 
@@ -64,6 +65,7 @@ async def test_deploy_katib_charms(ops_test: OpsTest):
         application_name=DB_APP_NAME,
         channel=MYSQL_CHANNEL,
         config=MYSQL_CONFIG,
+        constraints=MYSQL_CONSTRAINTS,
         trust=MYSQL_TRUST,
     )
 

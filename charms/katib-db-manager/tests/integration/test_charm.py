@@ -20,6 +20,7 @@ DB_APP_NAME = "katib-db"
 MYSQL = "mysql-k8s"
 MYSQL_CHANNEL = "8.0/stable"
 MYSQL_CONFIG = {"profile": "testing"}
+MYSQL_CONSTRAINTS = {"mem": "2G"}
 
 
 class TestCharm:
@@ -53,6 +54,7 @@ class TestCharm:
             application_name=DB_APP_NAME,
             channel=MYSQL_CHANNEL,
             config=MYSQL_CONFIG,
+            constraints=MYSQL_CONSTRAINTS,
             trust=True,
         )
 
