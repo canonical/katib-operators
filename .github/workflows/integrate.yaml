@@ -88,7 +88,7 @@ jobs:
           charmcraft-channel: latest/candidate
 
       - run: |
-          sg snap_microk8s -c "tox -e ${{ matrix.charm }}-integration -- --model testing"
+          sg snap_microk8s -c "tox -e ${{ matrix.charm }}-integration -- -- --model testing"
 
       # Collect debug logs if failed
       - name: Dump Juju/k8s logs on failure
