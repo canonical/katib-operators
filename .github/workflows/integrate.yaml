@@ -167,7 +167,7 @@ jobs:
         if: failure()
 
       - name: Upload charmcraft logs
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: charmcraft-logs
           path: /tmp/charmcraft-log-*
