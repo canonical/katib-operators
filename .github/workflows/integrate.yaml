@@ -85,7 +85,7 @@ jobs:
           provider: microk8s
           channel: 1.31-strict/stable
           juju-channel: 3.6/stable
-          charmcraft-channel: 3.x/stable
+          charmcraft-channel: latest/candidate # TODO: remove after charmcraft 3.3 stable release
 
       - run: |
           sg snap_microk8s -c "tox -e ${{ matrix.charm }}-integration -- -- --model testing"
