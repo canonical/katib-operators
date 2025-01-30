@@ -8,6 +8,8 @@ import pytest
 import yaml
 from pytest_operator.plugin import OpsTest
 
+BUILD_SUFFIX = "_ubuntu@20.04-amd64.charm"
+
 CONTROLLER_PATH = Path("charms/katib-controller")
 UI_PATH = Path("charms/katib-ui")
 DB_MANAGER_PATH = Path("charms/katib-db-manager")
@@ -36,11 +38,20 @@ logger = logging.getLogger(__name__)
 
 @pytest.mark.skip_if_deployed
 @pytest.mark.abort_on_fail
-async def test_deploy_katib_charms(ops_test: OpsTest):
+async def test_deploy_katib_charms(ops_test: OpsTest, request):
     # Build katib-controller, katib-db-manager, and katib-ui charms
-    controller_charm = await ops_test.build_charm(CONTROLLER_PATH)
-    db_manager_charm = await ops_test.build_charm(DB_MANAGER_PATH)
-    ui_charm = await ops_test.build_charm(UI_PATH)
+    if charms_path := request.config.getoption("--charms-path"):
+        controller_charm = (
+            f"{charms_path}/{CONTROLLER_APP_NAME}/{CONTROLLER_APP_NAME}{BUILD_SUFFIX}"
+        )
+        db_manager_charm = (
+            f"{charms_path}/{DB_MANAGER_APP_NAME}/{DB_MANAGER_APP_NAME}{BUILD_SUFFIX}"
+        )
+        ui_charm = f"{charms_path}/{UI_APP_NAME}/{UI_APP_NAME}{BUILD_SUFFIX}"
+    else:
+        controller_charm = await ops_test.build_charm(CONTROLLER_PATH)
+        db_manager_charm = await ops_test.build_charm(DB_MANAGER_PATH)
+        ui_charm = await ops_test.build_charm(UI_PATH)
 
     # Gather metadata
     controller_image_path = CONTROLLER_METADATA["resources"]["oci-image"]["upstream-source"]
@@ -92,3 +103,5 @@ async def test_deploy_katib_charms(ops_test: OpsTest):
         raise_on_blocked=True,
         timeout=360,
     )
+
+    # wait for the webhook to be ready

@@ -1,11 +1,27 @@
 # reusable workflow triggered by other actions
-name: CI
+name: Tests
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 on:
+  pull_request:
+  schedule:
+    - cron: '0 8 * * TUE'
+
+  # Triggered on push by .github/workflows/release.yaml
   workflow_call:
-    secrets:
-      CHARMCRAFT_CREDENTIALS:
-        required: true
+    outputs:
+      artifact-prefix:
+        description: build_charm.yaml `artifact-prefix` output
+        value: ${{ jobs.build.outputs.artifact-prefix }}
+      charm-paths:
+        description: paths for all charms in this repo
+        value: ${{ jobs.get-charm-paths-channel.outputs.charm-paths }}
+      channel:
+        description: Charmhub channel the charms are released to
+        value: ${{ jobs.get-charm-paths-channel.outputs.charm-channel }}
 
 jobs:
   lib-check:
@@ -56,9 +72,57 @@ jobs:
     with:
       charm-path: ./charms/${{ matrix.charm }}
 
-  charm-integration:
+  get-charm-paths-channel:
+    name: Get charm paths and charmhub channel
+    runs-on: ubuntu-latest
+    outputs:
+      charm-paths: ${{ steps.get-charm-paths.outputs.charm-paths }}
+      charm-channel: ${{ steps.select-channel.outputs.name }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Get paths for all charms in this repo
+        id: get-charm-paths
+        uses: canonical/kubeflow-ci/actions/get-charm-paths@main
+      - name: Select charmhub channel
+        uses: canonical/charming-actions/channel@2.6.2
+        id: select-channel
+
+  build:
+    strategy:
+      matrix:
+        charm: ${{ fromJSON(needs.get-charm-paths-channel.outputs.charm-paths) }}
+    name: Build charm | ${{ matrix.charm }}
+    needs:
+      - get-charm-paths-channel
+    uses: canonical/data-platform-workflows/.github/workflows/build_charm.yaml@v29.0.0
+    with:
+      path-to-charm-directory: ${{ matrix.charm }}
+
+  release:
+    strategy:
+      matrix:
+        charm: ${{ fromJSON(needs.get-charm-paths-channel.outputs.charm-paths) }}
+    name: Release charm to Charmhub branch | ${{ matrix.charm }}
+    if: ${{ github.event_name == 'pull_request' }}
+    needs:
+      - get-charm-paths-channel
+      - build
+    uses: canonical/data-platform-workflows/.github/workflows/release_charm.yaml@v29.0.0
+    with:
+      channel: ${{ needs.get-charm-paths-channel.outputs.charm-channel }}
+      artifact-prefix: ${{ needs.build.outputs.artifact-prefix }}
+      path-to-charm-directory: ${{ matrix.charm }}
+      create-git-tags: false
+    secrets:
+      charmhub-token: ${{ secrets.CHARMCRAFT_CREDENTIALS }}
+
+  integration:
     name: Integration tests (microk8s)
     runs-on: ubuntu-20.04
+    needs:
+      - build
     strategy:
       fail-fast: false
       matrix:
@@ -75,8 +139,17 @@ jobs:
           juju-channel: 3.6/stable
           charmcraft-channel: 3.x/stable
 
-      - run: |
-          sg snap_microk8s -c "tox -e ${{ matrix.charm }}-integration -- -- --model testing"
+      - name: Download packed charm(s)
+        id: download-charms
+        timeout-minutes: 5
+        uses: actions/download-artifact@v4
+        with:
+          pattern: ${{ needs.build.outputs.artifact-prefix }}-*
+          merge-multiple: true
+
+      - name: Integration tests
+        run: |
+          sg snap_microk8s -c "tox -e ${{ matrix.charm }}-integration -- --model testing --charm-path=${{ github.workspace }}/charms/${{ matrix.charm }}/${{ matrix.charm }}_ubuntu@20.04-amd64.charm"
 
       # Collect debug logs if failed
       - name: Dump Juju/k8s logs on failure
@@ -90,24 +163,13 @@ jobs:
   test-bundle:
     name: Test the bundle
     runs-on: ubuntu-20.04
+    needs:
+      - build
 
     steps:
-    # Ideally we'd use self-hosted runners, but this effort is still not stable.
-    # This action will remove unused software (dotnet, haskell, android libs, codeql,
-    # and docker images) from the GH runner, which will liberate around 60 GB of storage
-    # distributed in 40GB for root and around 20 for a mnt point.
-      - name: Maximise GH runner space
-        uses: easimon/maximize-build-space@v7
-        with:
-          root-reserve-mb: 29696
-          remove-dotnet: 'true'
-          remove-haskell: 'true'
-          remove-android: 'true'
-          remove-codeql: 'true'
-          remove-docker-images: 'true'
-
       - name: Check out code
         uses: actions/checkout@v4
+
       - name: Setup operator environment
         uses: charmed-kubernetes/actions-operator@main
         with:
@@ -116,11 +178,19 @@ jobs:
           juju-channel: 3.6/stable
           microk8s-addons: "dns storage rbac"
 
+      - name: Download packed charm(s)
+        id: download-charms
+        timeout-minutes: 5
+        uses: actions/download-artifact@v4
+        with:
+          pattern: ${{ needs.build.outputs.artifact-prefix }}-*
+          merge-multiple: true
+
       - name: Run test
         run: |
           # Requires the model to be called kubeflow due to kfp-viewer
           juju add-model kubeflow --config default-series=focal
-          sg snap_microk8s -c "tox -e bundle-integration -- --model kubeflow"
+          sg snap_microk8s -c "tox -e bundle-integration -- --model kubeflow --charms-path=${{ github.workspace }}/charms/"
 
       - name: Get pod statuses
         run: kubectl get all -A
