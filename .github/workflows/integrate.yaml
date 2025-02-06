@@ -26,21 +26,9 @@ jobs:
     runs-on: ubuntu-20.04
 
     steps:
-    - name: Check out code
-      uses: actions/checkout@v4
-
-    - name: Install dependencies
-      run: |
-        set -eux
-        sudo apt update
-        sudo apt install python3-setuptools
-        sudo pip3 install black flake8
-
-    - name: Check black
-      run: black --check charms/*/src
-
-    - name: Check flake8
-      run: flake8 ./charms/*/src
+      - uses: actions/checkout@v4
+      - run: python3 -m pip install tox
+      - run: tox -e lint
 
   unit:
     name: Unit tests
@@ -167,7 +155,7 @@ jobs:
         if: failure()
 
       - name: Upload charmcraft logs
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: charmcraft-logs
           path: /tmp/charmcraft-log-*
