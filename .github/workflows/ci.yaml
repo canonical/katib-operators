@@ -79,12 +79,11 @@ jobs:
   terraform-checks:
     name: Terraform
     uses: canonical/charmed-kubeflow-workflows/.github/workflows/terraform-checks.yaml@main
+    needs:
+      - get-charm-paths-channel
     strategy:
       matrix:
-        charm:
-          - katib-controller
-          - katib-db-manager
-          - katib-ui
+        charm: ${{ fromJSON(needs.get-charm-paths-channel.outputs.charm-paths) }}
     with:
       charm-path: ./charms/${{ matrix.charm }}
 
