@@ -85,7 +85,7 @@ jobs:
       matrix:
         charm: ${{ fromJSON(needs.get-charm-paths-channel.outputs.charm-paths) }}
     with:
-      charm-path: ./charms/${{ matrix.charm }}
+      charm-path: ${{ matrix.charm }}
 
   build:
     strategy:
