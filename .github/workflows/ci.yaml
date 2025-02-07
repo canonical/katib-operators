@@ -24,18 +24,34 @@ on:
         value: ${{ jobs.get-charm-paths-channel.outputs.charm-channel }}
 
 jobs:
+  get-charm-paths-channel:
+    name: Get charm paths and charmhub channel
+    runs-on: ubuntu-latest
+    outputs:
+      charm-paths: ${{ steps.get-charm-paths.outputs.charm-paths }}
+      charm-channel: ${{ steps.select-channel.outputs.name }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Get paths for all charms in this repo
+        id: get-charm-paths
+        uses: canonical/kubeflow-ci/actions/get-charm-paths@main
+      - name: Select charmhub channel
+        uses: canonical/charming-actions/channel@2.6.2
+        id: select-channel
+
   lib-check:
     name: Check libraries
+    needs:
+      - get-charm-paths-channel
     strategy:
       matrix:
-        charm:
-        - katib-controller
-        - katib-db-manager
-        - katib-ui
+        charm: ${{ fromJSON(needs.get-charm-paths-channel.outputs.charm-paths) }}
     uses: canonical/charmed-kubeflow-workflows/.github/workflows/_quality-checks.yaml@main
     secrets: inherit
     with:
-        charm-path: ./charms/${{ matrix.charm }}
+        charm-path: ${{ matrix.charm }}
 
   lint:
     name: Lint
@@ -71,23 +87,6 @@ jobs:
           - katib-ui
     with:
       charm-path: ./charms/${{ matrix.charm }}
-
-  get-charm-paths-channel:
-    name: Get charm paths and charmhub channel
-    runs-on: ubuntu-latest
-    outputs:
-      charm-paths: ${{ steps.get-charm-paths.outputs.charm-paths }}
-      charm-channel: ${{ steps.select-channel.outputs.name }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: Get paths for all charms in this repo
-        id: get-charm-paths
-        uses: canonical/kubeflow-ci/actions/get-charm-paths@main
-      - name: Select charmhub channel
-        uses: canonical/charming-actions/channel@2.6.2
-        id: select-channel
 
   build:
     strategy:
