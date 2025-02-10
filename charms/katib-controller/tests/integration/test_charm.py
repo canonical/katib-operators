@@ -56,7 +56,7 @@ def lightkube_client() -> lightkube.Client:
 
 class TestCharm:
     @pytest.mark.abort_on_fail
-    async def test_build_and_deploy(self, ops_test: OpsTest):
+    async def test_build_and_deploy(self, ops_test: OpsTest, request):
         """Build and deploy the charm.
 
         Assert on the unit status.
@@ -64,12 +64,17 @@ class TestCharm:
         # Deploy dependency katib-db-manager
         await ops_test.model.deploy(KATIB_DB_MANAGER, channel=KATIB_DB_MANAGER_CHANNEL, trust=True)
 
-        charm_under_test = await ops_test.build_charm(".")
+        entity_url = (
+            await ops_test.build_charm(".")
+            if not (entity_url := request.config.getoption("--charm-path"))
+            else entity_url
+        )
         image_path = METADATA["resources"]["oci-image"]["upstream-source"]
         resources = {"oci-image": image_path}
 
+        logger.info(entity_url)
         await ops_test.model.deploy(
-            charm_under_test,
+            entity_url=entity_url,
             resources=resources,
             application_name=CHARM_NAME,
             trust=True,
