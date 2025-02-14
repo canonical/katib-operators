@@ -10,6 +10,7 @@ from charms.kubeflow_dashboard.v0.kubeflow_dashboard_links import (
     DashboardLink,
     KubeflowDashboardLinksRequirer,
 )
+from charms.loki_k8s.v1.loki_push_api import LogForwarder
 from charms.observability_libs.v1.kubernetes_service_patch import KubernetesServicePatch
 from lightkube import ApiError
 from lightkube.generic_resource import load_in_cluster_generic_resources
@@ -43,7 +44,7 @@ class KatibUIOperator(CharmBase):
         self._container_name = "katib-ui"
         self._namespace = self.model.name
         self._name = self.model.app.name
-        self._container = self.unit.get_container(self._name)
+        self._container = self.unit.get_container(self._container_name)
         self._lightkube_field_manager = "lightkube"
         self._port = self.model.config["port"]
         port = ServicePort(int(self._port), name=f"{self.app.name}")
@@ -66,19 +67,21 @@ class KatibUIOperator(CharmBase):
             relation_name="dashboard-links",
             dashboard_links=[
                 DashboardLink(
-                    text="Experiments (AutoML)",
+                    text="Katib Experiments",
                     link="/katib/",
                     type="item",
                     icon="kubeflow:katib",
                     location="menu",
                 ),
                 DashboardLink(
-                    text="View Katib Experiments",
-                    link="/katib/",
-                    location="quick",
+                    text="Katib Documentation",
+                    link="https://www.kubeflow.org/docs/components/katib/",
+                    desc="Documentation for Katib",
+                    location="documentation",
                 ),
             ],
         )
+        self._logging = LogForwarder(charm=self)
 
     @property
     def container(self):
@@ -115,6 +118,12 @@ class KatibUIOperator(CharmBase):
                     "override": "replace",
                     "summary": "entrypoint of the katib-ui-operator image",
                     "command": f"./katib-ui --port={self._port}",
+                    # working-dir is required to interchangeably support docker images and rocks.
+                    # Rocks always set their entrypoint working-dir to "/" because pebble is the
+                    # entrypoint, so we need to be explicit.  This was not needed for running
+                    # the upstream docker image because that image has a entrypoint working-dir
+                    # of "/app", which is used if working-dir is not set here.
+                    "working-dir": "/app",
                     "startup": "enabled",
                     "environment": {"KATIB_CORE_NAMESPACE": self.model.name},
                 }

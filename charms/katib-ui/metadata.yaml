@@ -15,7 +15,7 @@ resources:
     type: oci-image
     description: Backing OCI image
     auto-fetch: true
-    upstream-source: docker.io/kubeflowkatib/katib-ui:v0.16.0-rc.1
+    upstream-source: charmedkubeflow/katib-ui:v0.17.0-158182c
 requires:
   ingress:
     interface: ingress
@@ -59,3 +59,6 @@ requires:
     __schema_source: https://raw.githubusercontent.com/canonical/operator-schemas/master/ingress.yaml
   dashboard-links:
     interface: kubeflow_dashboard_links
+  logging:
+    interface: loki_push_api
+    optional: true

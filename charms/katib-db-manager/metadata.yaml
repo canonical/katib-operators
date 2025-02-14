@@ -6,6 +6,7 @@ description: |
   Katib is the project which is agnostic to machine learning (ML) frameworks. It can tune
   hyperparameters of applications written in any language of the users’ choice and natively
   supports many ML frameworks, such as TensorFlow, MXNet, PyTorch, XGBoost, and others.
+docs: https://discourse.charmhub.io/t/8221
 website: https://charmhub.io/katib-db-manager
 source: https://github.com/canonical/katib-operators
 issues: https://github.com/canonical/katib-operators/issues
@@ -17,11 +18,14 @@ resources:
     type: oci-image
     description: Backing OCI image
     auto-fetch: true
-    upstream-source: docker.io/kubeflowkatib/katib-db-manager:v0.16.0-rc.1
+    upstream-source: docker.io/charmedkubeflow/katib-db-manager:v0.17.0-92cd6d9
 requires:
-  mysql:
-    interface: mysql
-    limit: 1
   relational-db:
     interface: mysql_client
     limit: 1
+  logging:
+    interface: loki_push_api
+    optional: true
+provides:
+  k8s-service-info:
+    interface: k8s-service

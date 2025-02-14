@@ -11,13 +11,12 @@ options:
     type: string
     default: | 
       default_trial_template: ''
+      default_trial_template_enas: ''
+      default_trial_template_pytorch: ''
       early_stopping__medianstop: ''
-      enas_cpu_template: ''
       metrics_collector_sidecar__stdout: ''
       metrics_collector_sidecar__file: ''
       metrics_collector_sidecar__tensorflow_event: ''
-      pytorch_job_template__master: ''
-      pytorch_job_template__worker: ''
       suggestion__random: ''
       suggestion__tpe: ''
       suggestion__grid: ''

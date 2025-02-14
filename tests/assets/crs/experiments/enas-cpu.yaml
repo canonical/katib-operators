@@ -8,9 +8,9 @@ kind: Experiment
 metadata:
   name: enas-cpu
 spec:
-  parallelTrialCount: 1
-  maxTrialCount: 1
-  maxFailedTrialCount: 1
+  parallelTrialCount: 1  # modified
+  maxTrialCount: 1  # modified
+  maxFailedTrialCount: 1  # modified
   objective:
     type: maximize
     goal: 0.99
@@ -133,7 +133,7 @@ spec:
           spec:
             containers:
               - name: training-container
-                image: docker.io/kubeflowkatib/enas-cnn-cifar10-cpu:v0.16.0-rc.1
+                image: docker.io/kubeflowkatib/enas-cnn-cifar10-cpu:v0.17.0
                 command:
                   - python3
                   - -u

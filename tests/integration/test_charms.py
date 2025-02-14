@@ -8,52 +8,81 @@ import pytest
 import yaml
 from pytest_operator.plugin import OpsTest
 
+BUILD_SUFFIX = "_ubuntu@20.04-amd64.charm"
+
 CONTROLLER_PATH = Path("charms/katib-controller")
 UI_PATH = Path("charms/katib-ui")
-DB_PATH = Path("charms/katib-db-manager")
+DB_MANAGER_PATH = Path("charms/katib-db-manager")
 
 CONTROLLER_METADATA = yaml.safe_load(Path(f"{CONTROLLER_PATH}/metadata.yaml").read_text())
 UI_METADATA = yaml.safe_load(Path(f"{UI_PATH}/metadata.yaml").read_text())
-DB_METADATA = yaml.safe_load(Path(f"{DB_PATH}/metadata.yaml").read_text())
+DB_MANAGER_METADATA = yaml.safe_load(Path(f"{DB_MANAGER_PATH}/metadata.yaml").read_text())
 
 CONTROLLER_APP_NAME = CONTROLLER_METADATA["name"]
 UI_APP_NAME = UI_METADATA["name"]
-DB_APP_NAME = DB_METADATA["name"]
+DB_MANAGER_APP_NAME = DB_MANAGER_METADATA["name"]
+
+DB_APP_NAME = "katib-db"
+
+KUBEFLOW_PROFILES = "kubeflow-profiles"
+KUBEFLOW_PROFILES_CHANNEL = "latest/edge"
+KUBEFLOW_PROFILES_TRUST = True
+
+MYSQL = "mysql-k8s"
+MYSQL_CHANNEL = "8.0/stable"
+MYSQL_CONFIG = {"profile": "testing"}
+MYSQL_TRUST = True
 
 logger = logging.getLogger(__name__)
 
 
 @pytest.mark.skip_if_deployed
 @pytest.mark.abort_on_fail
-async def test_deploy_katib_charms(ops_test: OpsTest):
+async def test_deploy_katib_charms(ops_test: OpsTest, request):
     # Build katib-controller, katib-db-manager, and katib-ui charms
-    controller_charm = await ops_test.build_charm(CONTROLLER_PATH)
-    db_manager_charm = await ops_test.build_charm(DB_PATH)
-    ui_charm = await ops_test.build_charm(UI_PATH)
+    if charms_path := request.config.getoption("--charms-path"):
+        controller_charm = (
+            f"{charms_path}/{CONTROLLER_APP_NAME}/{CONTROLLER_APP_NAME}{BUILD_SUFFIX}"
+        )
+        db_manager_charm = (
+            f"{charms_path}/{DB_MANAGER_APP_NAME}/{DB_MANAGER_APP_NAME}{BUILD_SUFFIX}"
+        )
+        ui_charm = f"{charms_path}/{UI_APP_NAME}/{UI_APP_NAME}{BUILD_SUFFIX}"
+    else:
+        controller_charm = await ops_test.build_charm(CONTROLLER_PATH)
+        db_manager_charm = await ops_test.build_charm(DB_MANAGER_PATH)
+        ui_charm = await ops_test.build_charm(UI_PATH)
 
     # Gather metadata
     controller_image_path = CONTROLLER_METADATA["resources"]["oci-image"]["upstream-source"]
-    db_image_path = DB_METADATA["resources"]["oci-image"]["upstream-source"]
+    db_manager_image_path = DB_MANAGER_METADATA["resources"]["oci-image"]["upstream-source"]
     ui_image_path = UI_METADATA["resources"]["oci-image"]["upstream-source"]
 
     # Deploy katib-controller, katib-db-manager, and katib-ui charms
-    await ops_test.model.deploy(controller_charm, resources={"oci-image": controller_image_path})
+    await ops_test.model.deploy(
+        controller_charm, resources={"oci-image": controller_image_path}, trust=True
+    )
 
     await ops_test.model.deploy(
-        db_manager_charm, resources={"oci-image": db_image_path}, trust=True
+        db_manager_charm, resources={"oci-image": db_manager_image_path}, trust=True
     )
 
     await ops_test.model.deploy(ui_charm, resources={"oci-image": ui_image_path}, trust=True)
 
     # Deploy katib-db
     await ops_test.model.deploy(
-        "charmed-osm-mariadb-k8s",
-        application_name="katib-db",
-        config={"database": "katib"},
+        entity_url=MYSQL,
+        application_name=DB_APP_NAME,
+        channel=MYSQL_CHANNEL,
+        config=MYSQL_CONFIG,
+        trust=MYSQL_TRUST,
     )
 
     # Relate to katib-db
-    await ops_test.model.add_relation("katib-db-manager", "katib-db")
+    await ops_test.model.add_relation(
+        f"{DB_MANAGER_APP_NAME}:relational-db", f"{DB_APP_NAME}:database"
+    )
+    await ops_test.model.add_relation(DB_MANAGER_APP_NAME, CONTROLLER_APP_NAME)
 
     await ops_test.model.wait_for_idle(
         status="active",
@@ -63,9 +92,9 @@ async def test_deploy_katib_charms(ops_test: OpsTest):
 
     # Deploy charms responsible for CRDs creation
     await ops_test.model.deploy(
-        entity_url="kubeflow-profiles",
-        channel="latest/edge",
-        trust=True,
+        entity_url=KUBEFLOW_PROFILES,
+        channel=KUBEFLOW_PROFILES_CHANNEL,
+        trust=KUBEFLOW_PROFILES_TRUST,
     )
 
     # Wait for everything to deploy
@@ -74,3 +103,5 @@ async def test_deploy_katib_charms(ops_test: OpsTest):
         raise_on_blocked=True,
         timeout=360,
     )
+
+    # wait for the webhook to be ready

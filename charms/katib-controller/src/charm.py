@@ -4,24 +4,53 @@
 
 import json
 import logging
+import tempfile
 from base64 import b64encode
 from pathlib import Path
-from subprocess import check_call
 from typing import Dict
 
+import lightkube
 import yaml
+from charmed_kubeflow_chisme.components import ContainerFileTemplate
+from charmed_kubeflow_chisme.components.charm_reconciler import CharmReconciler
+from charmed_kubeflow_chisme.components.kubernetes_component import KubernetesComponent
+from charmed_kubeflow_chisme.components.leadership_gate_component import LeadershipGateComponent
+from charmed_kubeflow_chisme.kubernetes import create_charm_default_labels
 from charms.grafana_k8s.v0.grafana_dashboard import GrafanaDashboardProvider
+from charms.loki_k8s.v1.loki_push_api import LogForwarder
+from charms.observability_libs.v1.kubernetes_service_patch import KubernetesServicePatch
 from charms.prometheus_k8s.v0.prometheus_scrape import MetricsEndpointProvider
-from jinja2 import Environment, FileSystemLoader, Template
-from oci_image import OCIImageResource, OCIImageResourceError
+from lightkube.models.core_v1 import ServicePort
+from lightkube.resources.admissionregistration_v1 import (
+    MutatingWebhookConfiguration,
+    ValidatingWebhookConfiguration,
+)
+from lightkube.resources.apiextensions_v1 import CustomResourceDefinition
+from lightkube.resources.core_v1 import ConfigMap, ServiceAccount
+from lightkube.resources.rbac_authorization_v1 import ClusterRole, ClusterRoleBinding
 from ops.charm import CharmBase
 from ops.framework import StoredState
 from ops.main import main
-from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, WaitingStatus
+
+from certs import gen_certs
+from components.k8s_service_info_requirer_component import K8sServiceInfoRequirerComponent
+from components.pebble_component import KatibControllerInputs, KatibControllerPebbleService
 
 DEFAULT_IMAGES_FILE = "src/default-custom-images.json"
 with open(DEFAULT_IMAGES_FILE, "r") as json_file:
     DEFAULT_IMAGES = json.load(json_file)
+
+K8S_RESOURCE_FILES = [
+    "src/templates/auth_manifests.yaml.j2",
+    "src/templates/crds.yaml",
+    "src/templates/webhooks.yaml.j2",
+    "src/templates/defaultTrialTemplate.yaml.j2",
+    "src/templates/katib-config-configmap.yaml.j2",
+]
+
+CERTS_FOLDER = "/tmp/cert"
+KATIB_CONFIG_FILE = Path("src/templates/katib-config.yaml.j2")
+KATIB_CONFIG_DESTINTATION_PATH = "/katib-config/katib-config.yaml"
 
 logger = logging.getLogger(__name__)
 
@@ -51,54 +80,26 @@ def parse_images_config(config: str) -> Dict:
         logger.warning(
             f"{error_message}  Got error: {err}, while parsing the custom_image config."
         )
-        raise CheckFailed(error_message, BlockedStatus)
+        raise err
     return images
 
 
-def render_template(template_path: str, context: Dict) -> str:
-    """
-    Render a Jinja2 template.
-
-    This function takes the file path of a Jinja2 template and a context dictionary
-    containing the variables for template rendering. It loads the template,
-    substitutes the variables in the context, and returns the rendered content.
-
-    Args:
-        template_path (str): The file path of the Jinja2 template.
-        context (Dict): A dictionary containing the variables for template rendering.
-
-    Returns:
-        str: The rendered template content.
-    """
-    template = Template(Path(template_path).read_text())
-    rendered_template = template.render(**context)
-    return rendered_template
-
-
-class CheckFailed(Exception):
-    """Raise this exception if one of the checks in main fails."""
-
-    def __init__(self, msg, status_type=None):
-        super().__init__()
-
-        self.msg = msg
-        self.status_type = status_type
-        self.status = status_type(msg)
-
-
-class Operator(CharmBase):
-    """Deploys the katib-controller service."""
+class KatibControllerOperator(CharmBase):
+    """Charm for the Katib controller component."""
 
     _stored = StoredState()
 
-    def __init__(self, framework):
-        super().__init__(framework)
+    def __init__(self, *args):
+        super().__init__(*args)
 
-        self._stored.set_default(**self.gen_certs())
-        self.image = OCIImageResource(self, "oci-image")
-        self.custom_images = []
-        self.images_context = {}
-        self.env = Environment(loader=FileSystemLoader("src/"))
+        self._namespace = self.model.name
+
+        # Expose controller's ports
+        webhook_port = ServicePort(int(self.model.config["webhook-port"]), name="webhook")
+        metrics_port = ServicePort(int(self.model.config["metrics-port"]), name="metrics")
+        self.service_patcher = KubernetesServicePatch(
+            self, [webhook_port, metrics_port], service_name=f"{self.model.app.name}"
+        )
 
         self.prometheus_provider = MetricsEndpointProvider(
             charm=self,
@@ -111,13 +112,99 @@ class Operator(CharmBase):
         )
         self.dashboard_provider = GrafanaDashboardProvider(self)
 
-        for event in [
-            self.on.config_changed,
-            self.on.install,
-            self.on.leader_elected,
-            self.on.upgrade_charm,
-        ]:
-            self.framework.observe(event, self.set_pod_spec)
+        # Charm logic
+        self.charm_reconciler = CharmReconciler(self)
+
+        # Generate self-signed certificates and store them
+        self._gen_certs_if_missing()
+
+        self.leadership_gate = self.charm_reconciler.add(
+            component=LeadershipGateComponent(
+                charm=self,
+                name="leadership-gate",
+            ),
+            depends_on=[],
+        )
+
+        self.kubernetes_resources = self.charm_reconciler.add(
+            component=KubernetesComponent(
+                charm=self,
+                name="kubernetes:auths-webhooks-crds-configmaps",
+                resource_templates=K8S_RESOURCE_FILES,
+                krh_resource_types={
+                    ClusterRole,
+                    ClusterRoleBinding,
+                    CustomResourceDefinition,
+                    ServiceAccount,
+                    MutatingWebhookConfiguration,
+                    ValidatingWebhookConfiguration,
+                    ConfigMap,
+                },
+                krh_labels=create_charm_default_labels(
+                    self.app.name, self.model.name, scope="auths-webhooks-crds-configmaps"
+                ),
+                context_callable=self._kubernetes_manifests_context,
+                lightkube_client=lightkube.Client(),
+            ),
+            depends_on=[self.leadership_gate],
+        )
+
+        # Create temporary files for the certificate data
+        with tempfile.NamedTemporaryFile(delete=False) as key_file:
+            key_file.write(self._stored.key.encode("utf-8"))
+
+        with tempfile.NamedTemporaryFile(delete=False) as cert_file:
+            cert_file.write(self._stored.cert.encode("utf-8"))
+
+        with tempfile.NamedTemporaryFile(delete=False) as ca_file:
+            ca_file.write(self._stored.ca.encode("utf-8"))
+
+        self.k8s_service_info_requirer = self.charm_reconciler.add(
+            component=K8sServiceInfoRequirerComponent(charm=self),
+            depends_on=[self.leadership_gate],
+        )
+
+        self.katib_controller_container = self.charm_reconciler.add(
+            component=KatibControllerPebbleService(
+                charm=self,
+                name="katib-controller-pebble-service",
+                container_name="katib-controller",
+                service_name="katib-controller",
+                files_to_push=[
+                    ContainerFileTemplate(
+                        source_template_path=key_file.name,
+                        destination_path=f"{CERTS_FOLDER}/tls.key",
+                    ),
+                    ContainerFileTemplate(
+                        source_template_path=cert_file.name,
+                        destination_path=f"{CERTS_FOLDER}/tls.crt",
+                    ),
+                    ContainerFileTemplate(
+                        source_template_path=ca_file.name,
+                        destination_path=f"{CERTS_FOLDER}/ca.crt",
+                    ),
+                    ContainerFileTemplate(
+                        source_template_path=KATIB_CONFIG_FILE,
+                        destination_path=KATIB_CONFIG_DESTINTATION_PATH,
+                        context_function=self._katib_config_context,
+                    ),
+                ],
+                inputs_getter=lambda: KatibControllerInputs(
+                    NAMESPACE=self.model.name,
+                    KATIB_DB_MANAGER_SERVICE_PORT=(
+                        self.k8s_service_info_requirer.component.get_service_info().port
+                    ),
+                ),
+            ),
+            depends_on=[
+                self.leadership_gate,
+                self.kubernetes_resources,
+                self.k8s_service_info_requirer,
+            ],
+        )
+
+        self.charm_reconciler.install_default_event_handlers()
+        self._logging = LogForwarder(charm=self)
 
     def get_images(
         self, default_images: Dict[str, str], custom_images: Dict[str, str]
@@ -149,296 +236,79 @@ class Operator(CharmBase):
                     logger.warning(f"image_name {image_name} not in image list, ignoring.")
         return images
 
-    def set_pod_spec(self, event):
-        self.model.unit.status = MaintenanceStatus("Setting pod spec")
+    def _kubernetes_manifests_context(self) -> Dict[str, str]:
+        """
+        Returns a dict of context used to render the Kubernetes manifests.
 
-        try:
-            self._check_leader()
-            self.custom_images = parse_images_config(self.model.config["custom_images"])
-            self.images_context = self.get_images(DEFAULT_IMAGES, self.custom_images)
-            self.katib_config_context = self.images_context
-            self.katib_config_context["webhookPort"] = self.model.config["webhook-port"]
-            image_details = self._check_image_details()
-        except CheckFailed as check_failed:
-            self.model.unit.status = check_failed.status
-            return
+        This function:
+        1. gets the dict of the images context by calling `get_images`,
+        the keys in the dict returned from `get_images` are the same as the variables
+        used in the manifests template.
+        2. updates the dict from `1.` to include the other context needed to render
+        the k8s manifests.
+        3. returns the updated dict containing the full context.
+        """
 
-        validating, mutating = self._rendered_webhook_definitions()
-
-        self.model.pod.set_spec(
+        context_dict = self.get_images(
+            DEFAULT_IMAGES,
+            parse_images_config(self.model.config["custom_images"]),
+        )
+        context_dict.update(
             {
-                "version": 3,
-                "serviceAccount": {
-                    "roles": [
-                        {
-                            "global": True,
-                            "rules": [
-                                {
-                                    "apiGroups": [""],
-                                    "resources": [
-                                        "configmaps",
-                                        "serviceaccounts",
-                                        "services",
-                                        "events",
-                                        "namespaces",
-                                        "persistentvolumes",
-                                        "persistentvolumeclaims",
-                                        "pods",
-                                        "pods/log",
-                                        "pods/status",
-                                        "secrets",
-                                    ],
-                                    "verbs": ["*"],
-                                },
-                                {
-                                    "apiGroups": ["apps"],
-                                    "resources": ["deployments"],
-                                    "verbs": ["*"],
-                                },
-                                {
-                                    "apiGroups": ["rbac.authorization.k8s.io"],
-                                    "resources": ["roles", "rolebindings"],
-                                    "verbs": ["*"],
-                                },
-                                {
-                                    "apiGroups": ["batch"],
-                                    "resources": ["jobs", "cronjobs"],
-                                    "verbs": ["*"],
-                                },
-                                {
-                                    "apiGroups": ["kubeflow.org"],
-                                    "resources": [
-                                        "experiments",
-                                        "experiments/status",
-                                        "experiments/finalizers",
-                                        "trials",
-                                        "trials/status",
-                                        "trials/finalizers",
-                                        "suggestions",
-                                        "suggestions/status",
-                                        "suggestions/finalizers",
-                                        "tfjobs",
-                                        "pytorchjobs",
-                                        "mpijobs",
-                                        "xgboostjobs",
-                                        "mxjobs",
-                                    ],
-                                    "verbs": ["*"],
-                                },
-                                {
-                                    "apiGroups": ["admissionregistration.k8s.io"],
-                                    "resources": [
-                                        "validatingwebhookconfigurations",
-                                        "mutatingwebhookconfigurations",
-                                    ],
-                                    "verbs": ["get", "watch", "list", "patch"],
-                                },
-                            ],
-                        }
-                    ]
-                },
-                "containers": [
-                    {
-                        "name": "katib-controller",
-                        "imageDetails": image_details,
-                        "command": ["./katib-controller"],
-                        "args": ["--katib-config=/katib-config/katib-config.yaml"],
-                        "ports": [
-                            {
-                                "name": "webhook",
-                                "containerPort": self.model.config["webhook-port"],
-                            },
-                            {
-                                "name": "metrics",
-                                "containerPort": self.model.config["metrics-port"],
-                            },
-                        ],
-                        "envConfig": {"KATIB_CORE_NAMESPACE": self.model.name},
-                        "volumeConfig": [
-                            {
-                                "name": "certs",
-                                "mountPath": "/tmp/cert",
-                                "files": [
-                                    {"path": "ca.crt", "content": self._stored.ca},
-                                    {"path": "tls.crt", "content": self._stored.cert},
-                                    {"path": "tls.key", "content": self._stored.key},
-                                ],
-                            },
-                            {
-                                "name": "katib-config",
-                                "mountPath": "/katib-config",
-                                "files": [
-                                    {
-                                        "path": "katib-config.yaml",
-                                        "content": render_template(
-                                            "src/templates/katib-config.yaml.j2",
-                                            self.katib_config_context,
-                                        ),
-                                    }
-                                ],
-                            },
-                        ],
-                    }
-                ],
-            },
-            k8s_resources={
-                "kubernetesResources": {
-                    "customResourceDefinitions": [
-                        {"name": crd["metadata"]["name"], "spec": crd["spec"]}
-                        for crd in yaml.safe_load_all(Path("src/crds.yaml").read_text())
-                    ],
-                    "mutatingWebhookConfigurations": [
-                        {
-                            "name": mutating["metadata"]["name"],
-                            "webhooks": mutating["webhooks"],
-                        }
-                    ],
-                    "validatingWebhookConfigurations": [
-                        {
-                            "name": validating["metadata"]["name"],
-                            "webhooks": validating["webhooks"],
-                        }
-                    ],
-                },
-                "configMaps": {
-                    "katib-config": {
-                        "katib-config.yaml": render_template(
-                            "src/templates/katib-config.yaml.j2", self.katib_config_context
-                        )
-                    },
-                    "trial-template": {
-                        f
-                        + suffix: render_template(
-                            f"src/templates/{f}.yaml.j2", self.images_context
-                        )
-                        for f, suffix in (
-                            ("defaultTrialTemplate", ".yaml"),
-                            ("enasCPUTemplate", ""),
-                            ("pytorchJobTemplate", ""),
-                        )
-                    },
-                },
-            },
+                "app_name": self.app.name,
+                "namespace": self._namespace,
+                "ca_bundle": b64encode(self._stored.ca.encode("ascii")).decode("utf-8"),
+                "webhookPort": self.model.config["webhook-port"],
+            }
         )
+        return context_dict
 
-        self.model.unit.status = ActiveStatus()
+    def _katib_config_context(self) -> Dict[str, str]:
+        """
+        Returns a dict of context used to render the katib-config template.
 
-    def _rendered_webhook_definitions(self):
-        ca_crt = b64encode(self._stored.ca.encode("ascii")).decode("utf-8")
-        yaml_file = self.env.get_template("templates/webhooks.yaml.j2").render(ca_bundle=ca_crt)
-        validating, mutating = yaml.safe_load_all(yaml_file)
-        return validating, mutating
+        This function:
+        1. gets the dict of the images context by calling `get_images`,
+        the keys in the dict returned from `get_images` are the same as the variables
+        used in the katib-config template.
+        2. updates the dict from `1.` to include the webhookPort context.
+        3. returns the updated dict containing the full context.
+        """
 
-    def gen_certs(self):
-        model = self.model.name
-        app = self.model.app.name
-        Path("/run/ssl.conf").write_text(
-            f"""[ req ]
-default_bits = 2048
-prompt = no
-default_md = sha256
-req_extensions = req_ext
-distinguished_name = dn
-[ dn ]
-C = GB
-ST = Canonical
-L = Canonical
-O = Canonical
-OU = Canonical
-CN = 127.0.0.1
-[ req_ext ]
-subjectAltName = @alt_names
-[ alt_names ]
-DNS.1 = {app}
-DNS.2 = {app}.{model}
-DNS.3 = {app}.{model}.svc
-DNS.4 = {app}.{model}.svc.cluster
-DNS.5 = {app}.{model}.svc.cluster.local
-IP.1 = 127.0.0.1
-[ v3_ext ]
-authorityKeyIdentifier=keyid,issuer:always
-basicConstraints=CA:FALSE
-keyUsage=keyEncipherment,dataEncipherment,digitalSignature
-extendedKeyUsage=serverAuth,clientAuth
-subjectAltName=@alt_names"""
+        context_dict = self.get_images(
+            DEFAULT_IMAGES,
+            parse_images_config(self.model.config["custom_images"]),
         )
-
-        check_call(["openssl", "genrsa", "-out", "/run/ca.key", "2048"])
-        check_call(["openssl", "genrsa", "-out", "/run/server.key", "2048"])
-        check_call(
-            [
-                "openssl",
-                "req",
-                "-x509",
-                "-new",
-                "-sha256",
-                "-nodes",
-                "-days",
-                "3650",
-                "-key",
-                "/run/ca.key",
-                "-subj",
-                "/CN=127.0.0.1",
-                "-out",
-                "/run/ca.crt",
-            ]
+        context_dict.update(
+            {
+                "webhookPort": self.model.config["webhook-port"],
+            }
         )
-        check_call(
-            [
-                "openssl",
-                "req",
-                "-new",
-                "-sha256",
-                "-key",
-                "/run/server.key",
-                "-out",
-                "/run/server.csr",
-                "-config",
-                "/run/ssl.conf",
-            ]
+        return context_dict
+
+    def _gen_certs_if_missing(self) -> None:
+        """Generate certificates if they don't already exist in _stored."""
+        logger.info("Generating certificates if missing.")
+        cert_attributes = ["cert", "ca", "key"]
+        # Generate new certs if any cert attribute is missing
+        for cert_attribute in cert_attributes:
+            try:
+                getattr(self._stored, cert_attribute)
+                logger.info(f"Certificate {cert_attribute} already exists, skipping generation.")
+            except AttributeError:
+                self._gen_certs()
+                return
+
+    def _gen_certs(self):
+        """Refresh the certificates, overwriting all attributes if any attribute is missing."""
+        logger.info("Generating certificates..")
+        certs = gen_certs(
+            model=self.model.name,
+            app=self.model.app.name,
         )
-        check_call(
-            [
-                "openssl",
-                "x509",
-                "-req",
-                "-sha256",
-                "-in",
-                "/run/server.csr",
-                "-CA",
-                "/run/ca.crt",
-                "-CAkey",
-                "/run/ca.key",
-                "-CAcreateserial",
-                "-out",
-                "/run/cert.pem",
-                "-days",
-                "365",
-                "-extensions",
-                "v3_ext",
-                "-extfile",
-                "/run/ssl.conf",
-            ]
-        )
-
-        return {
-            "cert": Path("/run/cert.pem").read_text(),
-            "key": Path("/run/server.key").read_text(),
-            "ca": Path("/run/ca.crt").read_text(),
-        }
-
-    def _check_leader(self):
-        if not self.unit.is_leader():
-            # We can't do anything useful when not the leader, so do nothing.
-            raise CheckFailed("Waiting for leadership", WaitingStatus)
-
-    def _check_image_details(self):
-        try:
-            image_details = self.image.fetch()
-        except OCIImageResourceError as e:
-            raise CheckFailed(f"{e.status.message}", e.status_type)
-        return image_details
+        for k, v in certs.items():
+            setattr(self._stored, k, v)
 
 
 if __name__ == "__main__":
-    main(Operator)
+    main(KatibControllerOperator)
