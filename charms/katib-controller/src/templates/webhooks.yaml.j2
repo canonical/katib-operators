@@ -63,12 +63,9 @@ webhooks:
     namespaceSelector:
       matchLabels:
         katib.kubeflow.org/metrics-collector-injection: enabled
-    objectSelector:
-      matchExpressions:
-      - key: katib.kubeflow.org/metrics-collector-injection
-        operator: NotIn
-        values:
-        - disabled
+    matchConditions:
+      - name: 'exclude-katib-controller'
+        expression: 'request.userInfo.username != "system:serviceaccount:{{ namespace }}:{{ app_name }}"'
     rules:
       - apiGroups:
           - ""
