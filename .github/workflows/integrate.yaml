@@ -27,7 +27,7 @@ jobs:
 
     steps:
     - name: Check out code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Install dependencies
       run: |
@@ -52,7 +52,7 @@ jobs:
           - katib-controller
           - katib-db-manager
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - run: python3 -m pip install tox
       - run: tox -e ${{ matrix.charm }}-unit
 
@@ -79,7 +79,7 @@ jobs:
           - katib-controller
           - katib-db-manager
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Setup operator environment
         uses: charmed-kubernetes/actions-operator@main
         with:
@@ -119,7 +119,7 @@ jobs:
           remove-docker-images: 'true'
 
       - name: Check out code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Setup operator environment
         uses: charmed-kubernetes/actions-operator@main
         with:
@@ -167,7 +167,7 @@ jobs:
         if: failure()
 
       - name: Upload charmcraft logs
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: charmcraft-logs
           path: /tmp/charmcraft-log-*
