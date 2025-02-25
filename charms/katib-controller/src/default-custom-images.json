@@ -9,7 +9,7 @@
     "suggestion__random": "docker.io/kubeflowkatib/suggestion-hyperopt:v0.18.0-rc.0",
     "suggestion__tpe": "docker.io/kubeflowkatib/suggestion-hyperopt:v0.18.0-rc.0",
     "suggestion__grid": "docker.io/kubeflowkatib/suggestion-optuna:v0.18.0-rc.0",
-    "suggestion__hyperband": "docker.io/kubeflowkatib/suggestion-hyperband:v0.18.0-rc.0",
+    "suggestion__hyperband": "docker.io/kubeflowkatib/suggestion-hyperband:v0.18.0-rc.0-be5169",
     "suggestion__bayesianoptimization": "docker.io/kubeflowkatib/suggestion-skopt:v0.18.0-rc.0",
     "suggestion__cmaes": "docker.io/kubeflowkatib/suggestion-goptuna:v0.18.0-rc.0",
     "suggestion__sobol": "docker.io/kubeflowkatib/suggestion-goptuna:v0.18.0-rc.0",
