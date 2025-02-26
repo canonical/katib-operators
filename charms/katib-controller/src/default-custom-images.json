@@ -8,13 +8,13 @@
     "metrics_collector_sidecar__tensorflow_event": "docker.io/kubeflowkatib/tfevent-metrics-collector:v0.18.0-rc.0",
     "suggestion__random": "docker.io/charmedkubeflow/suggestion-hyperopt:v0.18.0-rc.0-dbef553",
     "suggestion__tpe": "docker.io/charmedkubeflow/suggestion-hyperopt:v0.18.0-rc.0-dbef553",
-    "suggestion__grid": "docker.io/kubeflowkatib/suggestion-optuna:v0.18.0-rc.0",
+    "suggestion__grid": "docker.io/charmedkubeflow/suggestion-optuna:v0.18.0-rc.0-0e46af2",
     "suggestion__hyperband": "docker.io/kubeflowkatib/suggestion-hyperband:v0.18.0-rc.0",
-    "suggestion__bayesianoptimization": "docker.io/kubeflowkatib/suggestion-skopt:v0.18.0-rc.0",
+    "suggestion__bayesianoptimization": "docker.io/charmedkubeflow/suggestion-skopt:v0.18.0-rc.0-bc9abd4",
     "suggestion__cmaes": "docker.io/kubeflowkatib/suggestion-goptuna:v0.18.0-rc.0",
     "suggestion__sobol": "docker.io/kubeflowkatib/suggestion-goptuna:v0.18.0-rc.0",
-    "suggestion__multivariate_tpe": "docker.io/kubeflowkatib/suggestion-optuna:v0.18.0-rc.0",
+    "suggestion__multivariate_tpe": "docker.io/charmedkubeflow/suggestion-optuna:v0.18.0-rc.0-0e46af2",
     "suggestion__enas": "docker.io/kubeflowkatib/suggestion-enas:v0.18.0-rc.0",
-    "suggestion__darts": "docker.io/kubeflowkatib/suggestion-darts:v0.18.0-rc.0",
-    "suggestion__pbt": "docker.io/kubeflowkatib/suggestion-pbt:v0.18.0-rc.0"
+    "suggestion__darts": "docker.io/charmedkubeflow/suggestion-darts:v0.18.0-rc.0-e5cd20d",
+    "suggestion__pbt": "docker.io/kubeflowkatib/suggestion-pbt:v0.18.0-rc.0-8fc2048"
 }
