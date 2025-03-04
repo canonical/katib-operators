@@ -112,7 +112,7 @@ jobs:
 
   integration:
     name: Integration tests (microk8s)
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-22.04
     needs:
       - build
     strategy:
@@ -157,7 +157,7 @@ jobs:
 
   test-bundle:
     name: Test the bundle
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-22.04
     needs:
       - build
 
