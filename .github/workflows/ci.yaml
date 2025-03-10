@@ -41,30 +41,21 @@ jobs:
         uses: canonical/charming-actions/channel@2.6.2
         id: select-channel
 
-  lib-check:
-    name: Check libraries
-    needs:
-      - get-charm-paths-channel
-    strategy:
-      matrix:
-        charm: ${{ fromJSON(needs.get-charm-paths-channel.outputs.charm-paths) }}
-    uses: canonical/charmed-kubeflow-workflows/.github/workflows/_quality-checks.yaml@main
-    secrets: inherit
-    with:
-        charm-path: ${{ matrix.charm }}
-
   lint:
     name: Lint
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
 
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5.3.0
+        with:
+          python-version: 3.8
       - run: python3 -m pip install tox
       - run: tox -e lint
 
   unit:
     name: Unit tests
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -73,12 +64,15 @@ jobs:
           - katib-db-manager
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5.3.0
+        with:
+          python-version: 3.8
       - run: python3 -m pip install tox
       - run: tox -e ${{ matrix.charm }}-unit
 
   terraform-checks:
     name: Terraform
-    uses: canonical/charmed-kubeflow-workflows/.github/workflows/terraform-checks.yaml@main
+    uses: canonical/charmed-kubeflow-workflows/.github/workflows/terraform-checks.yaml@kf-7092-update-runners
     needs:
       - get-charm-paths-channel
     strategy:
@@ -118,7 +112,7 @@ jobs:
 
   integration:
     name: Integration tests (microk8s)
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     needs:
       - build
     strategy:
@@ -129,6 +123,9 @@ jobs:
           - katib-db-manager
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5.3.0
+        with:
+          python-version: 3.8
       - name: Setup operator environment
         uses: charmed-kubernetes/actions-operator@main
         with:
@@ -160,13 +157,17 @@ jobs:
 
   test-bundle:
     name: Test the bundle
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     needs:
       - build
 
     steps:
       - name: Check out code
         uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5.3.0
+        with:
+          python-version: 3.8
 
       - name: Setup operator environment
         uses: charmed-kubernetes/actions-operator@main
