@@ -55,16 +55,20 @@ jobs:
 
   lint:
     name: Lint
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
 
     steps:
       - uses: actions/checkout@v4
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v5.3.0
+        with:
+          python-version: 3.8
       - run: python3 -m pip install tox
       - run: tox -e lint
 
   unit:
     name: Unit tests
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -118,7 +122,7 @@ jobs:
 
   integration:
     name: Integration tests (microk8s)
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     needs:
       - build
     strategy:
@@ -129,6 +133,10 @@ jobs:
           - katib-db-manager
     steps:
       - uses: actions/checkout@v4
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v5.3.0
+        with:
+          python-version: 3.8
       - name: Setup operator environment
         uses: charmed-kubernetes/actions-operator@main
         with:
@@ -147,7 +155,7 @@ jobs:
 
       - name: Integration tests
         run: |
-          sg snap_microk8s -c "tox -vve ${{ matrix.charm }}-integration -- --model testing --charm-path=${{ github.workspace }}/charms/${{ matrix.charm }}/${{ matrix.charm }}_ubuntu@20.04-amd64.charm"
+          tox -vve ${{ matrix.charm }}-integration -- --model testing --charm-path=${{ github.workspace }}/charms/${{ matrix.charm }}/${{ matrix.charm }}_ubuntu@20.04-amd64.charm
 
       # Collect debug logs if failed
       - name: Dump Juju/k8s logs on failure
@@ -160,7 +168,7 @@ jobs:
 
   test-bundle:
     name: Test the bundle
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     needs:
       - build
 
@@ -188,7 +196,7 @@ jobs:
         run: |
           # Requires the model to be called kubeflow due to kfp-viewer
           juju add-model kubeflow --config default-series=focal
-          sg snap_microk8s -c "tox -e bundle-integration -- --model kubeflow --charms-path=${{ github.workspace }}/charms/"
+          tox -e bundle-integration -- --model kubeflow --charms-path=${{ github.workspace }}/charms/
 
       - name: Get pod statuses
         run: kubectl get all -A
