@@ -27,11 +27,11 @@ cffi==1.17.1
     #   cryptography
     #   pynacl
 charmed-kubeflow-chisme==0.4.3
-    # via -r requirements.in
+    # via -r /tmp/renovate/repos/github/canonical/katib-operators/charms/katib-controller/requirements.in
 charset-normalizer==3.4.0
     # via requests
 cosl==0.0.50
-    # via -r requirements.in
+    # via -r /tmp/renovate/repos/github/canonical/katib-operators/charms/katib-controller/requirements.in
 coverage==7.6.1
     # via -r requirements-unit.in
 cryptography==44.0.0
@@ -71,7 +71,7 @@ kubernetes==30.1.0
     # via juju
 lightkube==0.15.6
     # via
-    #   -r requirements.in
+    #   -r /tmp/renovate/repos/github/canonical/katib-operators/charms/katib-controller/requirements.in
     #   charmed-kubeflow-chisme
     #   cosl
 lightkube-models==1.31.1.8
@@ -88,8 +88,8 @@ oauthlib==3.2.2
     #   requests-oauthlib
 ops==2.17.1
     # via
+    #   -r /tmp/renovate/repos/github/canonical/katib-operators/charms/katib-controller/requirements.in
     #   -r requirements-unit.in
-    #   -r requirements.in
     #   charmed-kubeflow-chisme
     #   cosl
     #   serialized-data-interface
@@ -116,11 +116,11 @@ pyasn1-modules==0.4.1
     # via google-auth
 pycparser==2.22
     # via cffi
-pydantic==2.6.4
+pydantic==2.10.6
     # via
-    #   -r requirements.in
+    #   -r /tmp/renovate/repos/github/canonical/katib-operators/charms/katib-controller/requirements.in
     #   cosl
-pydantic-core==2.16.3
+pydantic-core==2.27.2
     # via pydantic
 pymacaroons==0.13.0
     # via macaroonbakery
@@ -150,8 +150,8 @@ pytz==2024.2
     # via pyrfc3339
 pyyaml==6.0.1
     # via
+    #   -r /tmp/renovate/repos/github/canonical/katib-operators/charms/katib-controller/requirements.in
     #   -r requirements-unit.in
-    #   -r requirements.in
     #   cosl
     #   juju
     #   kubernetes
