@@ -15,7 +15,7 @@ resources:
     type: oci-image
     description: Backing OCI image
     auto-fetch: true
-    upstream-source: docker.io/charmedkubeflow/katib-ui:v0.18.0-c84f19c
+    upstream-source: docker.io/charmedkubeflow/katib-ui:v0.18.0-d73ff5e
 requires:
   ingress:
     interface: ingress
