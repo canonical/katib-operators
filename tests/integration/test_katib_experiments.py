@@ -28,7 +28,7 @@ PROFILE_RESOURCE = create_global_resource(
     plural="profiles",
 )
 TRAINING_OPERATOR = "training-operator"
-TRAINING_OPERATOR_CHANNEL = "latest/edge"
+TRAINING_OPERATOR_CHANNEL = "1.9/stable"
 
 
 @pytest.fixture(scope="module")
