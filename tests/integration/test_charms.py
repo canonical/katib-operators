@@ -28,6 +28,10 @@ KUBEFLOW_PROFILES = "kubeflow-profiles"
 KUBEFLOW_PROFILES_CHANNEL = "1.10/stable"
 KUBEFLOW_PROFILES_TRUST = True
 
+ISTIO_PILOT = "istio-pilot"
+ISTIO_PILOT_CHANNEL = "latest/edge"
+ISTIO_PILOT_TRUST = True
+
 MYSQL = "mysql-k8s"
 MYSQL_CHANNEL = "8.0/stable"
 MYSQL_CONFIG = {"profile": "testing"}
@@ -95,6 +99,14 @@ async def test_deploy_katib_charms(ops_test: OpsTest, request):
         entity_url=KUBEFLOW_PROFILES,
         channel=KUBEFLOW_PROFILES_CHANNEL,
         trust=KUBEFLOW_PROFILES_TRUST,
+    )
+
+    # The profile controller needs AuthorizationPolicies to create Profiles
+    # Deploy istio-pilot to provide the k8s cluster with this CRD
+    await ops_test.model.deploy(
+        entity_url=ISTIO_PILOT,
+        channel=ISTIO_PILOT_CHANNEL,
+        trust=ISTIO_PILOT_TRUST,
     )
 
     # Wait for everything to deploy
