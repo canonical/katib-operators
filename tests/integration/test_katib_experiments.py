@@ -8,6 +8,7 @@ from pathlib import Path
 
 import lightkube
 import pytest
+from charms_dependencies import TRAINING_OPERATOR
 from lightkube import codecs
 from lightkube.generic_resource import create_global_resource, load_in_cluster_generic_resources
 from pytest_operator.plugin import OpsTest
@@ -27,8 +28,6 @@ PROFILE_RESOURCE = create_global_resource(
     kind="Profile",
     plural="profiles",
 )
-TRAINING_OPERATOR = "training-operator"
-TRAINING_OPERATOR_CHANNEL = "latest/edge"
 
 
 @pytest.fixture(scope="module")
@@ -43,12 +42,12 @@ def lightkube_client() -> lightkube.Client:
 async def training_operator(ops_test: OpsTest):
     """Deploy training-operator charm, and wait until it's active."""
     await ops_test.model.deploy(
-        entity_url=TRAINING_OPERATOR,
-        channel=TRAINING_OPERATOR_CHANNEL,
-        trust=True,
+        entity_url=TRAINING_OPERATOR.charm,
+        channel=TRAINING_OPERATOR.channel,
+        trust=TRAINING_OPERATOR.trust,
     )
     await ops_test.model.wait_for_idle(
-        apps=[TRAINING_OPERATOR], status="active", raise_on_blocked=False, timeout=60 * 5
+        apps=[TRAINING_OPERATOR.charm], status="active", raise_on_blocked=False, timeout=60 * 5
     )
 
 

@@ -12,6 +12,7 @@ from charmed_kubeflow_chisme.testing import (
     deploy_and_assert_grafana_agent,
     get_alert_rules,
 )
+from charms_dependencies import KATIB_DB_MANAGER
 from lightkube.resources.core_v1 import ConfigMap
 from pytest_operator.plugin import OpsTest
 
@@ -20,8 +21,6 @@ logger = logging.getLogger(__name__)
 METADATA = yaml.safe_load(Path("./metadata.yaml").read_text())
 CHARM_NAME = METADATA["name"]
 KATIB_CONFIG = "katib-config"
-KATIB_DB_MANAGER = "katib-db-manager"
-KATIB_DB_MANAGER_CHANNEL = "latest/edge"
 KATIB_VERSION = "v0.18.0"
 TRIAL_TEMPLATE = "trial-template"
 EXPECTED_KATIB_CONFIG = {
@@ -62,7 +61,9 @@ class TestCharm:
         Assert on the unit status.
         """
         # Deploy dependency katib-db-manager
-        await ops_test.model.deploy(KATIB_DB_MANAGER, channel=KATIB_DB_MANAGER_CHANNEL, trust=True)
+        await ops_test.model.deploy(
+            KATIB_DB_MANAGER.charm, channel=KATIB_DB_MANAGER.channel, trust=KATIB_DB_MANAGER.trust
+        )
 
         entity_url = (
             await ops_test.build_charm(".")
@@ -79,7 +80,7 @@ class TestCharm:
             application_name=CHARM_NAME,
             trust=True,
         )
-        await ops_test.model.integrate(CHARM_NAME, KATIB_DB_MANAGER)
+        await ops_test.model.integrate(CHARM_NAME, KATIB_DB_MANAGER.charm)
 
         await ops_test.model.wait_for_idle(apps=[CHARM_NAME], status="active", timeout=300)
 
