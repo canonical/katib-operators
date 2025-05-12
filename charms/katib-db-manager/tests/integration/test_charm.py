@@ -8,6 +8,7 @@ from charmed_kubeflow_chisme.testing import (
     assert_logging,
     deploy_and_assert_grafana_agent,
 )
+from charms_dependencies import MYSQL_K8S
 from pytest_operator.plugin import OpsTest
 
 logger = logging.getLogger(__name__)
@@ -15,11 +16,7 @@ logger = logging.getLogger(__name__)
 
 METADATA = yaml.safe_load(Path("./metadata.yaml").read_text())
 APP_NAME = "katib-db-manager"
-
 DB_APP_NAME = "katib-db"
-MYSQL = "mysql-k8s"
-MYSQL_CHANNEL = "8.0/stable"
-MYSQL_CONFIG = {"profile": "testing"}
 
 
 class TestCharm:
@@ -53,11 +50,11 @@ class TestCharm:
 
         # deploy mysql-k8s charm
         await ops_test.model.deploy(
-            entity_url=MYSQL,
+            entity_url=MYSQL_K8S.charm,
             application_name=DB_APP_NAME,
-            channel=MYSQL_CHANNEL,
-            config=MYSQL_CONFIG,
-            trust=True,
+            channel=MYSQL_K8S.channel,
+            config=MYSQL_K8S.config,
+            trust=MYSQL_K8S.trust,
         )
 
         await ops_test.model.wait_for_idle(

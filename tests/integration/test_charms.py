@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 import yaml
+from charms_dependencies import ISTIO_PILOT, KUBEFLOW_PROFILES, MYSQL_K8S
 from pytest_operator.plugin import OpsTest
 
 BUILD_SUFFIX = "_ubuntu@20.04-amd64.charm"
@@ -24,18 +25,6 @@ DB_MANAGER_APP_NAME = DB_MANAGER_METADATA["name"]
 
 DB_APP_NAME = "katib-db"
 
-KUBEFLOW_PROFILES = "kubeflow-profiles"
-KUBEFLOW_PROFILES_CHANNEL = "latest/edge"
-KUBEFLOW_PROFILES_TRUST = True
-
-ISTIO_PILOT = "istio-pilot"
-ISTIO_PILOT_CHANNEL = "latest/edge"
-ISTIO_PILOT_TRUST = True
-
-MYSQL = "mysql-k8s"
-MYSQL_CHANNEL = "8.0/stable"
-MYSQL_CONFIG = {"profile": "testing"}
-MYSQL_TRUST = True
 
 logger = logging.getLogger(__name__)
 
@@ -75,11 +64,11 @@ async def test_deploy_katib_charms(ops_test: OpsTest, request):
 
     # Deploy katib-db
     await ops_test.model.deploy(
-        entity_url=MYSQL,
+        entity_url=MYSQL_K8S.charm,
         application_name=DB_APP_NAME,
-        channel=MYSQL_CHANNEL,
-        config=MYSQL_CONFIG,
-        trust=MYSQL_TRUST,
+        channel=MYSQL_K8S.channel,
+        config=MYSQL_K8S.config,
+        trust=MYSQL_K8S.trust,
     )
 
     # Relate to katib-db
@@ -96,17 +85,17 @@ async def test_deploy_katib_charms(ops_test: OpsTest, request):
 
     # Deploy charms responsible for CRDs creation
     await ops_test.model.deploy(
-        entity_url=KUBEFLOW_PROFILES,
-        channel=KUBEFLOW_PROFILES_CHANNEL,
-        trust=KUBEFLOW_PROFILES_TRUST,
+        entity_url=KUBEFLOW_PROFILES.charm,
+        channel=KUBEFLOW_PROFILES.channel,
+        trust=KUBEFLOW_PROFILES.trust,
     )
 
     # The profile controller needs AuthorizationPolicies to create Profiles
     # Deploy istio-pilot to provide the k8s cluster with this CRD
     await ops_test.model.deploy(
-        entity_url=ISTIO_PILOT,
-        channel=ISTIO_PILOT_CHANNEL,
-        trust=ISTIO_PILOT_TRUST,
+        entity_url=ISTIO_PILOT.charm,
+        channel=ISTIO_PILOT.channel,
+        trust=ISTIO_PILOT.trust,
     )
 
     # Wait for everything to deploy
