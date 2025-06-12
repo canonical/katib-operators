@@ -59,10 +59,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Python 3.8
-        uses: actions/setup-python@v5.3.0
-        with:
-          python-version: 3.8
       - run: python3 -m pip install tox
       - run: tox -e lint
 
@@ -77,10 +73,6 @@ jobs:
           - katib-db-manager
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Python 3.8
-        uses: actions/setup-python@v5.3.0
-        with:
-          python-version: 3.8
       - run: python3 -m pip install tox
       - run: tox -e ${{ matrix.charm }}-unit
 
@@ -137,10 +129,6 @@ jobs:
           - katib-db-manager
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Python 3.8
-        uses: actions/setup-python@v5.3.0
-        with:
-          python-version: 3.8
       - name: Setup operator environment
         uses: charmed-kubernetes/actions-operator@main
         with:
@@ -159,7 +147,7 @@ jobs:
 
       - name: Integration tests
         run: |
-          tox -vve ${{ matrix.charm }}-integration -- --model testing --charm-path=${{ github.workspace }}/charms/${{ matrix.charm }}/${{ matrix.charm }}_ubuntu@20.04-amd64.charm
+          tox -vve ${{ matrix.charm }}-integration -- --model testing --charm-path=${{ github.workspace }}/charms/${{ matrix.charm }}/${{ matrix.charm }}_ubuntu@24.04-amd64.charm
 
       # Collect debug logs if failed
       - name: Dump Juju/k8s logs on failure
@@ -179,11 +167,6 @@ jobs:
     steps:
       - name: Check out code
         uses: actions/checkout@v4
-
-      - name: Set up Python 3.8
-        uses: actions/setup-python@v5.3.0
-        with:
-          python-version: 3.8
 
       - name: Setup operator environment
         uses: charmed-kubernetes/actions-operator@main
