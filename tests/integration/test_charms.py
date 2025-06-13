@@ -8,7 +8,7 @@ import pytest
 import yaml
 from pytest_operator.plugin import OpsTest
 
-BUILD_SUFFIX = "_ubuntu@20.04-amd64.charm"
+BUILD_SUFFIX = "_ubuntu@24.04-amd64.charm"
 
 CONTROLLER_PATH = Path("charms/katib-controller")
 UI_PATH = Path("charms/katib-ui")
