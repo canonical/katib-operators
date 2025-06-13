@@ -1,6 +1,9 @@
+# Copyright 2025 Canonical Ltd.
+# See LICENSE file for licensing details.
+
 type: charm
 platforms:
-  ubuntu@20.04:amd64:
+  ubuntu@24.04:amd64:
 
 # Files implicitly created by charmcraft without a part:
 # - dispatch (https://github.com/canonical/charmcraft/pull/1898)
@@ -36,8 +39,6 @@ parts:
     after:
       - python-deps
     python-requirements: [requirements.txt]
-    build-environment:
-      - PIP_CONSTRAINT: constraints.txt
     build-packages:
       - libffi-dev  # Needed to build Python dependencies with Rust from source
       - libssl-dev  # Needed to build Python dependencies with Rust from source

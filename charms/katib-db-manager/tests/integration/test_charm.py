@@ -25,9 +25,6 @@ class TestCharm:
         """Build and deploy the charm.
         Assert on the unit status.
         """
-        # set default series for test model
-        await ops_test.juju("model-config", "default-series=focal")
-
         entity_url = (
             await ops_test.build_charm(".")
             if not (entity_url := request.config.getoption("--charm-path"))
