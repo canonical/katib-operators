@@ -1,9 +1,8 @@
-charmed-kubeflow-chisme
+# "charmed-kubeflow-chisme" pinned to avoid closed "latest" tracks with COS charms, see:
+# https://github.com/canonical/charmed-kubeflow-chisme/issues/155
+charmed-kubeflow-chisme>=0.4.11
 lightkube
 ops
-# This is a requirement from the k8s_service_info library
-# Pin due to https://github.com/canonical/bundle-kubeflow/issues/926
-# Remove this pin when the base OS can install rustc v1.76 or newer.
-pydantic>=2.6,<2.7
+pydantic
 # from loki_k8s.v1.loki_push_api.py
 cosl
