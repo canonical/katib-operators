@@ -1,3 +1,4 @@
+import json
 import logging
 from pathlib import Path
 
@@ -23,14 +24,6 @@ CHARM_NAME = METADATA["name"]
 KATIB_CONFIG = "katib-config"
 KATIB_VERSION = "v0.18.0"
 TRIAL_TEMPLATE = "trial-template"
-EXPECTED_KATIB_CONFIG = {
-    "katib-config.yaml": "---\napiVersion: config.kubeflow.org/v1beta1\nkind: KatibConfig\ninit:\n  controller:\n    webhookPort: 443\n    trialResources:\n      - Job.v1.batch\n      - TFJob.v1.kubeflow.org\n      - PyTorchJob.v1.kubeflow.org\n      - MPIJob.v1.kubeflow.org\n      - XGBoostJob.v1.kubeflow.org\nruntime:\n  metricsCollectors:\n    - kind: StdOut\n      image: ghcr.io/kubeflow/katib/file-metrics-collector:%(katib_version)s\n    - kind: File\n      image: ghcr.io/kubeflow/katib/file-metrics-collector:%(katib_version)s\n    - kind: TensorFlowEvent\n      image: ghcr.io/kubeflow/katib/tfevent-metrics-collector:%(katib_version)s\n      resources:\n        limits:\n          memory: 1Gi\n  suggestions:\n    - algorithmName: random\n      image: docker.io/charmedkubeflow/suggestion-hyperopt:%(katib_version)s-d73ff5e\n    - algorithmName: tpe\n      image: docker.io/charmedkubeflow/suggestion-hyperopt:%(katib_version)s-d73ff5e\n    - algorithmName: grid\n      image: docker.io/charmedkubeflow/suggestion-optuna:%(katib_version)s-d73ff5e\n    - algorithmName: hyperband\n      image: docker.io/charmedkubeflow/suggestion-hyperband:%(katib_version)s-d73ff5e\n    - algorithmName: bayesianoptimization\n      image: docker.io/charmedkubeflow/suggestion-skopt:%(katib_version)s-d73ff5e\n    - algorithmName: cmaes\n      image: docker.io/charmedkubeflow/suggestion-goptuna:%(katib_version)s-d73ff5e\n    - algorithmName: sobol\n      image: docker.io/charmedkubeflow/suggestion-goptuna:%(katib_version)s-d73ff5e\n    - algorithmName: multivariate-tpe\n      image: docker.io/charmedkubeflow/suggestion-optuna:%(katib_version)s-d73ff5e\n    - algorithmName: enas\n      image: docker.io/charmedkubeflow/suggestion-enas:%(katib_version)s-d73ff5e\n      resources:\n        limits:\n          memory: 400Mi\n    - algorithmName: darts\n      image: docker.io/charmedkubeflow/suggestion-nas-darts:%(katib_version)s-d73ff5e\n    - algorithmName: pbt\n      image: docker.io/charmedkubeflow/suggestion-pbt:%(katib_version)s-d73ff5e\n      persistentVolumeClaimSpec:\n        accessModes:\n          - ReadWriteMany\n        resources:\n          requests:\n            storage: 5Gi\n  earlyStoppings:\n    - algorithmName: medianstop\n      image: docker.io/charmedkubeflow/earlystopping-medianstop:%(katib_version)s-d73ff5e"  # noqa: E501
-    % {"katib_version": KATIB_VERSION},
-}
-EXPECTED_KATIB_CONFIG_CHANGED = {
-    "katib-config.yaml": "---\napiVersion: config.kubeflow.org/v1beta1\nkind: KatibConfig\ninit:\n  controller:\n    webhookPort: 443\n    trialResources:\n      - Job.v1.batch\n      - TFJob.v1.kubeflow.org\n      - PyTorchJob.v1.kubeflow.org\n      - MPIJob.v1.kubeflow.org\n      - XGBoostJob.v1.kubeflow.org\nruntime:\n  metricsCollectors:\n    - kind: StdOut\n      image: ghcr.io/kubeflow/katib/file-metrics-collector:%(katib_version)s\n    - kind: File\n      image: ghcr.io/kubeflow/katib/file-metrics-collector:%(katib_version)s\n    - kind: TensorFlowEvent\n      image: ghcr.io/kubeflow/katib/tfevent-metrics-collector:%(katib_version)s\n      resources:\n        limits:\n          memory: 1Gi\n  suggestions:\n    - algorithmName: random\n      image: docker.io/charmedkubeflow/suggestion-hyperopt:%(katib_version)s-d73ff5e\n    - algorithmName: tpe\n      image: docker.io/charmedkubeflow/suggestion-hyperopt:%(katib_version)s-d73ff5e\n    - algorithmName: grid\n      image: docker.io/charmedkubeflow/suggestion-optuna:%(katib_version)s-d73ff5e\n    - algorithmName: hyperband\n      image: docker.io/charmedkubeflow/suggestion-hyperband:%(katib_version)s-d73ff5e\n    - algorithmName: bayesianoptimization\n      image: docker.io/charmedkubeflow/suggestion-skopt:%(katib_version)s-d73ff5e\n    - algorithmName: cmaes\n      image: docker.io/charmedkubeflow/suggestion-goptuna:%(katib_version)s-d73ff5e\n    - algorithmName: sobol\n      image: docker.io/charmedkubeflow/suggestion-goptuna:%(katib_version)s-d73ff5e\n    - algorithmName: multivariate-tpe\n      image: docker.io/charmedkubeflow/suggestion-optuna:%(katib_version)s-d73ff5e\n    - algorithmName: enas\n      image: docker.io/charmedkubeflow/suggestion-enas:%(katib_version)s-d73ff5e\n      resources:\n        limits:\n          memory: 400Mi\n    - algorithmName: darts\n      image: docker.io/charmedkubeflow/suggestion-nas-darts:%(katib_version)s-d73ff5e\n    - algorithmName: pbt\n      image: docker.io/charmedkubeflow/suggestion-pbt:%(katib_version)s-d73ff5e\n      persistentVolumeClaimSpec:\n        accessModes:\n          - ReadWriteMany\n        resources:\n          requests:\n            storage: 5Gi\n  earlyStoppings:\n    - algorithmName: medianstop\n      image: custom:2.1"  # noqa: E501
-    % {"katib_version": KATIB_VERSION},
-}
 EXPECTED_TRIAL_TEMPLATE = {
     "defaultTrialTemplate.yaml": 'apiVersion: batch/v1\nkind: Job\nspec:\n  template:\n    spec:\n      containers:\n        - name: training-container\n          image: docker.io/ubuntu:22.04\n          command:\n            - "python3"\n            - "/opt/some-script.py"\n            - "--batch-size=64"\n            - "--lr=${trialParameters.learningRate}"\n            - "--num-layers=${trialParameters.numberLayers}"\n            - "--optimizer=${trialParameters.optimizer}"\n      restartPolicy: Never',  # noqa: E501
     "enasCPUTemplate": 'apiVersion: batch/v1\nkind: Job\nspec:\n  template:\n    spec:\n      containers:\n        - name: training-container\n          image: ghcr.io/kubeflow/katib/enas-cnn-cifar10-cpu:%(katib_version)s\n          command:\n            - python3\n            - -u\n            - RunTrial.py\n            - --num_epochs=1\n            - "--architecture=\\"${trialParameters.neuralNetworkArchitecture}\\""\n            - "--nn_config=\\"${trialParameters.neuralNetworkConfig}\\""\n      restartPolicy: Never'  # noqa: E501
@@ -44,6 +37,80 @@ EXPECTED_TRIAL_TEMPLATE_CHANGED = {
     % {"katib_version": KATIB_VERSION},
     "pytorchJobTemplate": 'apiVersion: kubeflow.org/v1\nkind: PyTorchJob\nspec:\n  pytorchReplicaSpecs:\n    Master:\n      replicas: 1\n      restartPolicy: OnFailure\n      template:\n        spec:\n          containers:\n            - name: pytorch\n              image: ghcr.io/kubeflow/katib/pytorch-mnist-cpu:%(katib_version)s\n              command:\n                - "python3"\n                - "/opt/pytorch-mnist/mnist.py"\n                - "--epochs=1"\n                - "--lr=${trialParameters.learningRate}"\n                - "--momentum=${trialParameters.momentum}"\n    Worker:\n      replicas: 2\n      restartPolicy: OnFailure\n      template:\n        spec:\n          containers:\n            - name: pytorch\n              image: ghcr.io/kubeflow/katib/pytorch-mnist-cpu:%(katib_version)s\n              command:\n                - "python3"\n                - "/opt/pytorch-mnist/mnist.py"\n                - "--epochs=1"\n                - "--lr=${trialParameters.learningRate}"\n                - "--momentum=${trialParameters.momentum}"'  # noqa: E501
     % {"katib_version": KATIB_VERSION},
+}
+
+CUSTOM_IMAGES_PATH = (
+    Path(__file__).resolve().parent.parent.parent / "src" / "default-custom-images.json"
+)
+with CUSTOM_IMAGES_PATH.open() as f:
+    CUSTOM_IMAGES = json.load(f)
+
+EXPECTED_KATIB_CONFIG = {
+    "katib-config.yaml": f"""---
+apiVersion: config.kubeflow.org/v1beta1
+kind: KatibConfig
+init:
+  controller:
+    webhookPort: 443
+    trialResources:
+      - Job.v1.batch
+      - TFJob.v1.kubeflow.org
+      - PyTorchJob.v1.kubeflow.org
+      - MPIJob.v1.kubeflow.org
+      - XGBoostJob.v1.kubeflow.org
+runtime:
+  metricsCollectors:
+    - kind: StdOut
+      image: {CUSTOM_IMAGES["metrics_collector_sidecar__stdout"]}
+    - kind: File
+      image: {CUSTOM_IMAGES["metrics_collector_sidecar__file"]}
+    - kind: TensorFlowEvent
+      image: {CUSTOM_IMAGES["metrics_collector_sidecar__tensorflow_event"]}
+      resources:
+        limits:
+          memory: 1Gi
+  suggestions:
+    - algorithmName: random
+      image: {CUSTOM_IMAGES["suggestion__random"]}
+    - algorithmName: tpe
+      image: {CUSTOM_IMAGES["suggestion__tpe"]}
+    - algorithmName: grid
+      image: {CUSTOM_IMAGES["suggestion__grid"]}
+    - algorithmName: hyperband
+      image: {CUSTOM_IMAGES["suggestion__hyperband"]}
+    - algorithmName: bayesianoptimization
+      image: {CUSTOM_IMAGES["suggestion__bayesianoptimization"]}
+    - algorithmName: cmaes
+      image: {CUSTOM_IMAGES["suggestion__cmaes"]}
+    - algorithmName: sobol
+      image: {CUSTOM_IMAGES["suggestion__sobol"]}
+    - algorithmName: multivariate-tpe
+      image: {CUSTOM_IMAGES["suggestion__multivariate_tpe"]}
+    - algorithmName: enas
+      image: {CUSTOM_IMAGES["suggestion__enas"]}
+      resources:
+        limits:
+          memory: 400Mi
+    - algorithmName: darts
+      image: {CUSTOM_IMAGES["suggestion__darts"]}
+    - algorithmName: pbt
+      image: {CUSTOM_IMAGES["suggestion__pbt"]}
+      persistentVolumeClaimSpec:
+        accessModes:
+          - ReadWriteMany
+        resources:
+          requests:
+            storage: 5Gi
+  earlyStoppings:
+    - algorithmName: medianstop
+      image: {CUSTOM_IMAGES["early_stopping__medianstop"]}
+"""
+}
+
+EXPECTED_KATIB_CONFIG_CHANGED = {
+    "katib-config.yaml": EXPECTED_KATIB_CONFIG["katib-config.yaml"].replace(
+        CUSTOM_IMAGES["early_stopping__medianstop"], "custom:2.1"
+    )
 }
 
 
@@ -90,7 +157,12 @@ class TestCharm:
         )
 
     async def test_configmap_created(self, lightkube_client: lightkube.Client, ops_test: OpsTest):
-        """Test configmaps contents with default coonfig."""
+        """Test ConfigMaps are created with expected default values.
+
+        NOTE: ConfigMap string values may differ only by trailing newlines,
+        depending on how Kubernetes or the client library serializes YAML content.
+        To avoid problems, we strip trailing whitespace from both sides.
+        """
         katib_config_cm = lightkube_client.get(
             ConfigMap, KATIB_CONFIG, namespace=ops_test.model_name
         )
@@ -98,12 +170,25 @@ class TestCharm:
             ConfigMap, TRIAL_TEMPLATE, namespace=ops_test.model_name
         )
 
-        assert katib_config_cm.data == EXPECTED_KATIB_CONFIG
-        assert trial_template_cm.data == EXPECTED_TRIAL_TEMPLATE
+        for key in EXPECTED_KATIB_CONFIG:
+            assert (
+                katib_config_cm.data.get(key, "").rstrip() == EXPECTED_KATIB_CONFIG[key].rstrip()
+            ), f"Mismatch in katib config map key: {key}"
+
+        for key in EXPECTED_TRIAL_TEMPLATE:
+            assert (
+                trial_template_cm.data.get(key, "").rstrip()
+                == EXPECTED_TRIAL_TEMPLATE[key].rstrip()
+            ), f"Mismatch in trial template key: {key}"
 
     async def test_configmap_changes_with_config(
         self, lightkube_client: lightkube.Client, ops_test: OpsTest
     ):
+        """Test that config map values are updated when custom config is applied.
+
+        NOTE: Like above, trailing newlines may differ in generated vs expected strings.
+        Comparisons are done using `.rstrip()` to avoid superficial failures.
+        """
         await ops_test.model.applications[CHARM_NAME].set_config(
             {
                 "custom_images": '{"default_trial_template": "custom:1.0", "early_stopping__medianstop": "custom:2.1"}'  # noqa: E501
@@ -112,6 +197,7 @@ class TestCharm:
         await ops_test.model.wait_for_idle(
             apps=[CHARM_NAME], status="active", raise_on_blocked=True, timeout=300
         )
+
         katib_config_cm = lightkube_client.get(
             ConfigMap, KATIB_CONFIG, namespace=ops_test.model_name
         )
@@ -119,8 +205,17 @@ class TestCharm:
             ConfigMap, TRIAL_TEMPLATE, namespace=ops_test.model_name
         )
 
-        assert katib_config_cm.data == EXPECTED_KATIB_CONFIG_CHANGED
-        assert trial_template_cm.data == EXPECTED_TRIAL_TEMPLATE_CHANGED
+        for key in EXPECTED_KATIB_CONFIG_CHANGED:
+            assert (
+                katib_config_cm.data.get(key, "").rstrip()
+                == EXPECTED_KATIB_CONFIG_CHANGED[key].rstrip()
+            ), f"Mismatch in changed katib config map key: {key}"
+
+        for key in EXPECTED_TRIAL_TEMPLATE_CHANGED:
+            assert (
+                trial_template_cm.data.get(key, "").rstrip()
+                == EXPECTED_TRIAL_TEMPLATE_CHANGED[key].rstrip()
+            ), f"Mismatch in changed trial template key: {key}"
 
     async def test_blocked_on_invalid_config(self, ops_test: OpsTest):
         await ops_test.model.applications[CHARM_NAME].set_config({"custom_images": "{"})
