@@ -4,7 +4,7 @@ charmed-kubeflow-chisme>=0.4.11
 lightkube
 ops
 # Pinning until this resolves https://github.com/yaml/pyyaml/issues/724
-pyyaml==6.0.1
+pyyaml==6.0.2
 # from prometheus_k8s.v0.prometheus_scrape.py
 cosl
 # This is a requirement from the k8s_service_info library
