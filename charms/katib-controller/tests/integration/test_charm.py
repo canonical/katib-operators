@@ -51,12 +51,12 @@ def populate_template(template_path, context):
         dict: The rendered YAML content as a Python dictionary.
     """
     with open(template_path, "r") as f:
-        configmap_template = f.read()
+        template = f.read()
 
-    populated_configmap = Template(configmap_template).render(context)
-    populated_configmap_yaml = yaml.safe_load(populated_configmap)
+    populated_template = Template(template).render(context)
+    populated_template_yaml = yaml.safe_load(populated_template)
 
-    return populated_configmap_yaml
+    return populated_template_yaml
 
 
 @pytest.fixture(scope="session")
