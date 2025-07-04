@@ -14,105 +14,48 @@ from charmed_kubeflow_chisme.testing import (
     get_alert_rules,
 )
 from charms_dependencies import KATIB_DB_MANAGER
+from jinja2 import Template
 from lightkube.resources.core_v1 import ConfigMap
 from pytest_operator.plugin import OpsTest
 
 logger = logging.getLogger(__name__)
 
+CUSTOM_IMAGES_PATH = Path("./src/default-custom-images.json")
+with CUSTOM_IMAGES_PATH.open() as f:
+    custom_images = json.load(f)
+
+CONFIGMAP_TEMPLATE_PATH = Path("./src/templates/katib-config-configmap.yaml.j2")
+CONFIGMAP_WEBHOOK_PORT = "443"
+TRIAL_TEMPLATE_PATH = Path("./src/templates/defaultTrialTemplate.yaml.j2")
+
 METADATA = yaml.safe_load(Path("./metadata.yaml").read_text())
 CHARM_NAME = METADATA["name"]
 KATIB_CONFIG = "katib-config"
-KATIB_VERSION = "v0.18.0"
 TRIAL_TEMPLATE = "trial-template"
-EXPECTED_TRIAL_TEMPLATE = {
-    "defaultTrialTemplate.yaml": 'apiVersion: batch/v1\nkind: Job\nspec:\n  template:\n    spec:\n      containers:\n        - name: training-container\n          image: docker.io/ubuntu:22.04\n          command:\n            - "python3"\n            - "/opt/some-script.py"\n            - "--batch-size=64"\n            - "--lr=${trialParameters.learningRate}"\n            - "--num-layers=${trialParameters.numberLayers}"\n            - "--optimizer=${trialParameters.optimizer}"\n      restartPolicy: Never',  # noqa: E501
-    "enasCPUTemplate": 'apiVersion: batch/v1\nkind: Job\nspec:\n  template:\n    spec:\n      containers:\n        - name: training-container\n          image: ghcr.io/kubeflow/katib/enas-cnn-cifar10-cpu:%(katib_version)s\n          command:\n            - python3\n            - -u\n            - RunTrial.py\n            - --num_epochs=1\n            - "--architecture=\\"${trialParameters.neuralNetworkArchitecture}\\""\n            - "--nn_config=\\"${trialParameters.neuralNetworkConfig}\\""\n      restartPolicy: Never'  # noqa: E501
-    % {"katib_version": KATIB_VERSION},
-    "pytorchJobTemplate": 'apiVersion: kubeflow.org/v1\nkind: PyTorchJob\nspec:\n  pytorchReplicaSpecs:\n    Master:\n      replicas: 1\n      restartPolicy: OnFailure\n      template:\n        spec:\n          containers:\n            - name: pytorch\n              image: ghcr.io/kubeflow/katib/pytorch-mnist-cpu:%(katib_version)s\n              command:\n                - "python3"\n                - "/opt/pytorch-mnist/mnist.py"\n                - "--epochs=1"\n                - "--lr=${trialParameters.learningRate}"\n                - "--momentum=${trialParameters.momentum}"\n    Worker:\n      replicas: 2\n      restartPolicy: OnFailure\n      template:\n        spec:\n          containers:\n            - name: pytorch\n              image: ghcr.io/kubeflow/katib/pytorch-mnist-cpu:%(katib_version)s\n              command:\n                - "python3"\n                - "/opt/pytorch-mnist/mnist.py"\n                - "--epochs=1"\n                - "--lr=${trialParameters.learningRate}"\n                - "--momentum=${trialParameters.momentum}"'  # noqa: E501
-    % {"katib_version": KATIB_VERSION},
-}
-EXPECTED_TRIAL_TEMPLATE_CHANGED = {
-    "defaultTrialTemplate.yaml": 'apiVersion: batch/v1\nkind: Job\nspec:\n  template:\n    spec:\n      containers:\n        - name: training-container\n          image: custom:1.0\n          command:\n            - "python3"\n            - "/opt/some-script.py"\n            - "--batch-size=64"\n            - "--lr=${trialParameters.learningRate}"\n            - "--num-layers=${trialParameters.numberLayers}"\n            - "--optimizer=${trialParameters.optimizer}"\n      restartPolicy: Never',  # noqa: E501
-    "enasCPUTemplate": 'apiVersion: batch/v1\nkind: Job\nspec:\n  template:\n    spec:\n      containers:\n        - name: training-container\n          image: ghcr.io/kubeflow/katib/enas-cnn-cifar10-cpu:%(katib_version)s\n          command:\n            - python3\n            - -u\n            - RunTrial.py\n            - --num_epochs=1\n            - "--architecture=\\"${trialParameters.neuralNetworkArchitecture}\\""\n            - "--nn_config=\\"${trialParameters.neuralNetworkConfig}\\""\n      restartPolicy: Never'  # noqa: E501
-    % {"katib_version": KATIB_VERSION},
-    "pytorchJobTemplate": 'apiVersion: kubeflow.org/v1\nkind: PyTorchJob\nspec:\n  pytorchReplicaSpecs:\n    Master:\n      replicas: 1\n      restartPolicy: OnFailure\n      template:\n        spec:\n          containers:\n            - name: pytorch\n              image: ghcr.io/kubeflow/katib/pytorch-mnist-cpu:%(katib_version)s\n              command:\n                - "python3"\n                - "/opt/pytorch-mnist/mnist.py"\n                - "--epochs=1"\n                - "--lr=${trialParameters.learningRate}"\n                - "--momentum=${trialParameters.momentum}"\n    Worker:\n      replicas: 2\n      restartPolicy: OnFailure\n      template:\n        spec:\n          containers:\n            - name: pytorch\n              image: ghcr.io/kubeflow/katib/pytorch-mnist-cpu:%(katib_version)s\n              command:\n                - "python3"\n                - "/opt/pytorch-mnist/mnist.py"\n                - "--epochs=1"\n                - "--lr=${trialParameters.learningRate}"\n                - "--momentum=${trialParameters.momentum}"'  # noqa: E501
-    % {"katib_version": KATIB_VERSION},
-}
 
-CUSTOM_IMAGES_PATH = (
-    Path(__file__).resolve().parent.parent.parent / "src" / "default-custom-images.json"
-)
-with CUSTOM_IMAGES_PATH.open() as f:
-    CUSTOM_IMAGES = json.load(f)
-
-EXPECTED_KATIB_CONFIG = {
-    "katib-config.yaml": f"""---
-apiVersion: config.kubeflow.org/v1beta1
-kind: KatibConfig
-init:
-  controller:
-    webhookPort: 443
-    trialResources:
-      - Job.v1.batch
-      - TFJob.v1.kubeflow.org
-      - PyTorchJob.v1.kubeflow.org
-      - MPIJob.v1.kubeflow.org
-      - XGBoostJob.v1.kubeflow.org
-runtime:
-  metricsCollectors:
-    - kind: StdOut
-      image: {CUSTOM_IMAGES["metrics_collector_sidecar__stdout"]}
-    - kind: File
-      image: {CUSTOM_IMAGES["metrics_collector_sidecar__file"]}
-    - kind: TensorFlowEvent
-      image: {CUSTOM_IMAGES["metrics_collector_sidecar__tensorflow_event"]}
-      resources:
-        limits:
-          memory: 1Gi
-  suggestions:
-    - algorithmName: random
-      image: {CUSTOM_IMAGES["suggestion__random"]}
-    - algorithmName: tpe
-      image: {CUSTOM_IMAGES["suggestion__tpe"]}
-    - algorithmName: grid
-      image: {CUSTOM_IMAGES["suggestion__grid"]}
-    - algorithmName: hyperband
-      image: {CUSTOM_IMAGES["suggestion__hyperband"]}
-    - algorithmName: bayesianoptimization
-      image: {CUSTOM_IMAGES["suggestion__bayesianoptimization"]}
-    - algorithmName: cmaes
-      image: {CUSTOM_IMAGES["suggestion__cmaes"]}
-    - algorithmName: sobol
-      image: {CUSTOM_IMAGES["suggestion__sobol"]}
-    - algorithmName: multivariate-tpe
-      image: {CUSTOM_IMAGES["suggestion__multivariate_tpe"]}
-    - algorithmName: enas
-      image: {CUSTOM_IMAGES["suggestion__enas"]}
-      resources:
-        limits:
-          memory: 400Mi
-    - algorithmName: darts
-      image: {CUSTOM_IMAGES["suggestion__darts"]}
-    - algorithmName: pbt
-      image: {CUSTOM_IMAGES["suggestion__pbt"]}
-      persistentVolumeClaimSpec:
-        accessModes:
-          - ReadWriteMany
-        resources:
-          requests:
-            storage: 5Gi
-  earlyStoppings:
-    - algorithmName: medianstop
-      image: {CUSTOM_IMAGES["early_stopping__medianstop"]}
-"""
+configmap_context = {
+    **custom_images,
+    "webhookPort": CONFIGMAP_WEBHOOK_PORT,
 }
+trial_context = custom_images
 
-EXPECTED_KATIB_CONFIG_CHANGED = {
-    "katib-config.yaml": EXPECTED_KATIB_CONFIG["katib-config.yaml"].replace(
-        CUSTOM_IMAGES["early_stopping__medianstop"], "custom:2.1"
-    )
-}
+def populate_template(template_path, context):
+    """Populates a YAML template with values from the provided context.
 
+    Args:
+        template_path (str): Path to the YAML file that serves as the Jinja2 template.
+        context (dict): Dictionary of values to render into the template.
+
+    Returns:
+        dict: The rendered YAML content as a Python dictionary.
+    """
+    with open(template_path, "r") as f:
+        configmap_template = f.read()
+
+    populated_configmap = Template(configmap_template).render(context)
+    populated_configmap_yaml = yaml.safe_load(populated_configmap)
+
+    return populated_configmap_yaml
 
 @pytest.fixture(scope="session")
 def lightkube_client() -> lightkube.Client:
@@ -170,16 +113,12 @@ class TestCharm:
             ConfigMap, TRIAL_TEMPLATE, namespace=ops_test.model_name
         )
 
-        for key in EXPECTED_KATIB_CONFIG:
-            assert (
-                katib_config_cm.data.get(key, "").rstrip() == EXPECTED_KATIB_CONFIG[key].rstrip()
-            ), f"Mismatch in katib config map key: {key}"
+        trial_context["namespace"] = ops_test.model_name
+        expected_config = populate_template(CONFIGMAP_TEMPLATE_PATH, configmap_context)
+        expected_trial_template = populate_template(TRIAL_TEMPLATE_PATH, trial_context)
+        assert katib_config_cm.data == expected_config["data"]
+        assert trial_template_cm.data == expected_trial_template["data"]
 
-        for key in EXPECTED_TRIAL_TEMPLATE:
-            assert (
-                trial_template_cm.data.get(key, "").rstrip()
-                == EXPECTED_TRIAL_TEMPLATE[key].rstrip()
-            ), f"Mismatch in trial template key: {key}"
 
     async def test_configmap_changes_with_config(
         self, lightkube_client: lightkube.Client, ops_test: OpsTest
@@ -205,17 +144,14 @@ class TestCharm:
             ConfigMap, TRIAL_TEMPLATE, namespace=ops_test.model_name
         )
 
-        for key in EXPECTED_KATIB_CONFIG_CHANGED:
-            assert (
-                katib_config_cm.data.get(key, "").rstrip()
-                == EXPECTED_KATIB_CONFIG_CHANGED[key].rstrip()
-            ), f"Mismatch in changed katib config map key: {key}"
+        trial_context["namespace"] = ops_test.model_name
+        trial_context["default_trial_template"] = "custom:1.0"
+        configmap_context["early_stopping__medianstop"] = "custom:2.1"
 
-        for key in EXPECTED_TRIAL_TEMPLATE_CHANGED:
-            assert (
-                trial_template_cm.data.get(key, "").rstrip()
-                == EXPECTED_TRIAL_TEMPLATE_CHANGED[key].rstrip()
-            ), f"Mismatch in changed trial template key: {key}"
+        expected_config = populate_template(CONFIGMAP_TEMPLATE_PATH, configmap_context)
+        expected_trial_template = populate_template(TRIAL_TEMPLATE_PATH, trial_context)
+        assert katib_config_cm.data == expected_config["data"]
+        assert trial_template_cm.data == expected_trial_template["data"]
 
     async def test_blocked_on_invalid_config(self, ops_test: OpsTest):
         await ops_test.model.applications[CHARM_NAME].set_config({"custom_images": "{"})
