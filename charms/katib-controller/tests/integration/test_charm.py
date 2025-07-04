@@ -39,6 +39,7 @@ configmap_context = {
 }
 trial_context = custom_images
 
+
 def populate_template(template_path, context):
     """Populates a YAML template with values from the provided context.
 
@@ -56,6 +57,7 @@ def populate_template(template_path, context):
     populated_configmap_yaml = yaml.safe_load(populated_configmap)
 
     return populated_configmap_yaml
+
 
 @pytest.fixture(scope="session")
 def lightkube_client() -> lightkube.Client:
@@ -118,7 +120,6 @@ class TestCharm:
         expected_trial_template = populate_template(TRIAL_TEMPLATE_PATH, trial_context)
         assert katib_config_cm.data == expected_config["data"]
         assert trial_template_cm.data == expected_trial_template["data"]
-
 
     async def test_configmap_changes_with_config(
         self, lightkube_client: lightkube.Client, ops_test: OpsTest
