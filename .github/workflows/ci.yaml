@@ -59,7 +59,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - run: python3 -m pip install tox
+      - run: python3 -m pipx install tox
       - run: tox -e lint
 
   unit:
@@ -73,7 +73,7 @@ jobs:
           - katib-db-manager
     steps:
       - uses: actions/checkout@v4
-      - run: python3 -m pip install tox
+      - run: python3 -m pipx install tox
       - run: tox -e ${{ matrix.charm }}-unit
 
   terraform-checks:
