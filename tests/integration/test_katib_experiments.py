@@ -81,7 +81,7 @@ async def test_katib_experiments(
     Create an experiment and assert that it is Running or Succeeded. Delete the experiment after it
     has completed.
     Uses `training-operator` fixture needed to run the tfjob-mnist-with-summaries.yaml example.
-    NOTE: This test is re-using the deployment created in test_charms::test_deploy_katib_charms().
+    NOTE: This test is reusing the deployment created in test_charms::test_deploy_katib_charms().
     """
     exp_name = create_experiment(
         client=lightkube_client, exp_path=experiment_file, namespace=NAMESPACE
