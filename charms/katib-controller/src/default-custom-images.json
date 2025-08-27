@@ -5,7 +5,7 @@
     "early_stopping__medianstop": "docker.io/charmedkubeflow/earlystopping-medianstop:v0.18.0-d73ff5e",
     "metrics_collector_sidecar__stdout": "ghcr.io/kubeflow/katib/file-metrics-collector:v0.18.0",
     "metrics_collector_sidecar__file": "ghcr.io/kubeflow/katib/file-metrics-collector:v0.18.0",
-    "metrics_collector_sidecar__tensorflow_event": "ghcr.io/kubeflow/katib/tfevent-metrics-collector:v0.18.0",
+    "metrics_collector_sidecar__tensorflow_event": "docker.io/charmedkubeflow/tfevent-metrics-collector:v0.17.0-2f7955d",
     "suggestion__random": "docker.io/charmedkubeflow/suggestion-hyperopt:v0.18.0-d73ff5e",
     "suggestion__tpe": "docker.io/charmedkubeflow/suggestion-hyperopt:v0.18.0-d73ff5e",
     "suggestion__grid": "docker.io/charmedkubeflow/suggestion-optuna:v0.18.0-d73ff5e",
