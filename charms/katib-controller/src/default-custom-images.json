@@ -7,7 +7,7 @@
     "metrics_collector_sidecar__file": "ghcr.io/kubeflow/katib/file-metrics-collector:v0.18.0",
     "metrics_collector_sidecar__tensorflow_event": "ghcr.io/kubeflow/katib/tfevent-metrics-collector:v0.18.0",
     "suggestion__random": "docker.io/charmedkubeflow/suggestion-hyperopt:v0.18.0-d73ff5e",
-    "suggestion__tpe": "docker.io/charmedkubeflow/suggestion-hyperopt:v0.18.0-d73ff5e",
+    "suggestion__tpe": "docker.io/charmedkubeflow/suggestion-hyperopt:v0.18.0-628b135",
     "suggestion__grid": "docker.io/charmedkubeflow/suggestion-optuna:v0.18.0-d73ff5e",
     "suggestion__hyperband": "docker.io/charmedkubeflow/suggestion-hyperband:v0.18.0-d73ff5e",
     "suggestion__bayesianoptimization": "docker.io/charmedkubeflow/suggestion-skopt:v0.18.0-d73ff5e",
