@@ -15,6 +15,6 @@
     "suggestion__sobol": "docker.io/charmedkubeflow/suggestion-goptuna:v0.18.0-d73ff5e",
     "suggestion__multivariate_tpe": "docker.io/charmedkubeflow/suggestion-optuna:v0.18.0-d73ff5e",
     "suggestion__enas": "docker.io/charmedkubeflow/suggestion-enas:v0.18.0-d73ff5e",
-    "suggestion__darts": "docker.io/charmedkubeflow/suggestion-nas-darts:v0.18.0-d73ff5e",
+    "suggestion__darts": "docker.io/charmedkubeflow/suggestion-nas-darts:v0.18.0-cc7c189",
     "suggestion__pbt": "docker.io/charmedkubeflow/suggestion-pbt:v0.18.0-d73ff5e"
 }
