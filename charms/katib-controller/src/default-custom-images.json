@@ -10,7 +10,7 @@
     "suggestion__tpe": "docker.io/charmedkubeflow/suggestion-hyperopt:v0.18.0-d73ff5e",
     "suggestion__grid": "docker.io/charmedkubeflow/suggestion-optuna:v0.18.0-d73ff5e",
     "suggestion__hyperband": "docker.io/charmedkubeflow/suggestion-hyperband:v0.18.0-d73ff5e",
-    "suggestion__bayesianoptimization": "docker.io/charmedkubeflow/suggestion-skopt:v0.18.0-d73ff5e",
+    "suggestion__bayesianoptimization": "docker.io/charmedkubeflow/suggestion-skopt:v0.18.0-87347b1",
     "suggestion__cmaes": "docker.io/charmedkubeflow/suggestion-goptuna:v0.18.0-d73ff5e",
     "suggestion__sobol": "docker.io/charmedkubeflow/suggestion-goptuna:v0.18.0-d73ff5e",
     "suggestion__multivariate_tpe": "docker.io/charmedkubeflow/suggestion-optuna:v0.18.0-d73ff5e",
