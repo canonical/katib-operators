@@ -71,7 +71,9 @@ def create_profile(lightkube_client):
 
 @pytest.mark.parametrize(
     "experiment_file",
-    glob.glob("tests/assets/crs/experiments/*.yaml"),
+    # Don't include simple-pbt.yaml because Canonical K8s doesn't support ReadWriteMany AccessMode
+    # See: https://github.com/canonical/katib-operators/issues/347
+    [f for f in glob.glob("tests/assets/crs/experiments/*.yaml") if "simple-pbt.yaml" not in f],
 )
 async def test_katib_experiments(
     create_profile, lightkube_client, training_operator, ops_test: OpsTest, experiment_file
