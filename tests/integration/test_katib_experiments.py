@@ -72,7 +72,12 @@ def create_profile(lightkube_client):
 
 @pytest.mark.parametrize(
     "experiment_file",
-    glob.glob("tests/assets/crs/experiments/*.yaml"),
+    # Don't include simple-pbt.yaml by default as Canonical K8s doesn't support PVCs with
+    # ReadWriteMany AccessMode.
+    # See: https://github.com/canonical/katib-operators/issues/347
+    # To include simple-pbt.yaml, replace the line below the comments with:
+    # glob.glob("tests/assets/crs/experiments/*.yaml"),
+    [f for f in glob.glob("tests/assets/crs/experiments/*.yaml") if "simple-pbt.yaml" not in f],
 )
 async def test_katib_experiments(
     create_profile, lightkube_client, training_operator, ops_test: OpsTest, experiment_file
@@ -82,7 +87,7 @@ async def test_katib_experiments(
     Create an experiment and assert that it is Running or Succeeded. Delete the experiment after it
     has completed.
     Uses `training-operator` fixture needed to run the tfjob-mnist-with-summaries.yaml example.
-    NOTE: This test is re-using the deployment created in test_charms::test_deploy_katib_charms().
+    NOTE: This test is reusing the deployment created in test_charms::test_deploy_katib_charms().
     """
     exp_name = create_experiment(
         client=lightkube_client, exp_path=experiment_file, namespace=NAMESPACE
