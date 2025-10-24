@@ -1,6 +1,7 @@
 resource "juju_application" "katib_db_manager" {
   charm {
     name     = "katib-db-manager"
+    base     = var.base
     channel  = var.channel
     revision = var.revision
   }
