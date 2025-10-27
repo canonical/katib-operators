@@ -1,6 +1,7 @@
 resource "juju_application" "katib_ui" {
   charm {
     name     = "katib-ui"
+    base     = var.base
     channel  = var.channel
     revision = var.revision
   }
