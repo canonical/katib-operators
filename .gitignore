@@ -8,3 +8,4 @@ __pycache__/
 venv/
 .terraform*
 *.tfstate*
+coverage.xml
