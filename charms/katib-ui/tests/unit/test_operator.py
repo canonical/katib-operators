@@ -11,6 +11,10 @@ from charm import KatibUIOperator
 
 TEST_NAMESPACE = "test-namespace"
 TEST_PORT = 8080
+ISTIO_INGRESS_ROUTE_RELATION = "istio-ingress-route"
+INGRESS_RELATION = "ingress"
+ISTIO_GATEWAY_APP = "istio-gateway"
+ISTIO_INGRESS_K8S_APP = "istio-ingress-k8s"
 
 EXPECTED_PEBBLE_LAYER = {
     "services": {
@@ -132,7 +136,6 @@ def test_kubernetes_resources_created(
 ):
     """Test that Kubernetes resources are applied when conditions are met."""
     harness.begin_with_initial_hooks()
-    harness.set_can_connect("katib-ui", True)
 
     # Act
     harness.charm.on.install.emit()
@@ -154,7 +157,6 @@ def test_pebble_layer(
 ):
     """Test creation of Pebble layer with correct configuration."""
     harness.begin_with_initial_hooks()
-    harness.set_can_connect("katib-ui", True)
 
     # Act
     harness.charm.on.install.emit()
@@ -187,7 +189,6 @@ def test_pebble_services_running(
 ):
     """Test that pebble services successfully start."""
     harness.begin_with_initial_hooks()
-    harness.set_can_connect("katib-ui", True)
 
     # Act
     harness.charm.on.install.emit()
@@ -212,17 +213,16 @@ def test_ingress_relation_with_data(
     mocked_load_in_cluster_generic_resources,
 ):
     """Test that ingress relation data is sent when relation is present."""
-    harness.begin()
-    harness.set_can_connect("katib-ui", True)
+    harness.begin_with_initial_hooks()
 
     # Setup ingress relation
-    rel_id = harness.add_relation("ingress", "istio-pilot")
+    rel_id = harness.add_relation(INGRESS_RELATION, "istio-pilot")
     harness.add_relation_unit(rel_id, "istio-pilot/0")
 
     # Mock the interfaces
     mock_interface = MagicMock()
     with patch("charm.get_interfaces") as mock_get_interfaces:
-        mock_get_interfaces.return_value = {"ingress": mock_interface}
+        mock_get_interfaces.return_value = {INGRESS_RELATION: mock_interface}
 
         # Act
         harness.charm.on.install.emit()
@@ -231,7 +231,6 @@ def test_ingress_relation_with_data(
         mock_interface.send_data.assert_called_once_with(
             {
                 "prefix": "/katib/",
-                "rewrite": "/katib/",
                 "service": harness.charm.model.app.name,
                 "port": harness.charm.model.config["port"],
             }
@@ -249,20 +248,20 @@ def test_both_istio_relations_blocked(
     mocked_load_in_cluster_generic_resources,
 ):
     """Test that having both ambient and sidecar relations causes BlockedStatus."""
-    harness.begin()
-    harness.set_can_connect("katib-ui", True)
+    harness.begin_with_initial_hooks()
 
     # Add both relations
-    harness.add_relation("istio-ingress-route", "istio-gateway")
-    harness.add_relation("ingress", "istio-pilot")
+    harness.add_relation(ISTIO_INGRESS_ROUTE_RELATION, ISTIO_INGRESS_K8S_APP)
+    harness.add_relation(INGRESS_RELATION, ISTIO_GATEWAY_APP)
 
     # Act
     harness.charm.on.config_changed.emit()
 
     # Assert
     assert isinstance(harness.charm.model.unit.status, BlockedStatus)
-    assert "Cannot have both 'istio-ingress-route' and 'ingress' relations" in str(
-        harness.charm.model.unit.status.message
+    assert (
+        f"Cannot have both '{ISTIO_INGRESS_ROUTE_RELATION}' and '{INGRESS_RELATION}' relations"
+        in str(harness.charm.model.unit.status.message)
     )
 
 
@@ -276,7 +275,6 @@ def test_ambient_ingress_configuration_leader_only(
     mocked_kubeflow_dashboard_links_requirer,
 ):
     """Test that ambient ingress configuration is only submitted by the leader."""
-    harness.set_leader(True)
     harness.begin()
 
     # The ingress.submit_config should be called during __init__ when unit is leader
@@ -295,7 +293,6 @@ def test_config_changed_event(
 ):
     """Test that config-changed event triggers the main handler."""
     harness.begin_with_initial_hooks()
-    harness.set_can_connect("katib-ui", True)
 
     # Act
     harness.charm.on.config_changed.emit()
