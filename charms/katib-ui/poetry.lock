@@ -532,14 +532,14 @@ pycparser = {version = "*", markers = "implementation_name != \"PyPy\""}
 
 [[package]]
 name = "charmed-kubeflow-chisme"
-version = "0.4.15"
+version = "0.4.16"
 description = "A collection of helpers for Charms maintained by the Charmed Kubeflow team"
 optional = false
 python-versions = ">=3.6"
 groups = ["charm", "integration"]
 files = [
-    {file = "charmed_kubeflow_chisme-0.4.15-py3-none-any.whl", hash = "sha256:5ed71e865f1874dd10eb9b8a560e03f3bc947f7f8a5ab7d57a5f095761281539"},
-    {file = "charmed_kubeflow_chisme-0.4.15.tar.gz", hash = "sha256:3080fd25048b9055b52430356542df91f7072bbcae805d0410db47c0001e5bf8"},
+    {file = "charmed_kubeflow_chisme-0.4.16-py3-none-any.whl", hash = "sha256:001718389bcc31eefbd406a07decaa33933091ab57d841db201aeabd72032d50"},
+    {file = "charmed_kubeflow_chisme-0.4.16.tar.gz", hash = "sha256:1ff420524cc4bc87bcfc40227dbdffb484cb44879149d5063c193630f568009d"},
 ]
 
 [package.dependencies]
@@ -3465,4 +3465,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.12,<4.0"
-content-hash = "5377fd85b5a17612b601d84adb75532ff896be31e3f34b97b6dffda6564f0b78"
+content-hash = "f332ce2d360f3796f37157506a6471adf9d007bd627b1166d272dcda4a52792c"
