@@ -88,6 +88,7 @@ jobs:
         charm:
           - katib-controller
           - katib-db-manager
+          - katib-ui
     steps:
       - uses: actions/checkout@v4
       - run: python3 -m pipx install tox
@@ -144,6 +145,17 @@ jobs:
         charm:
           - katib-controller
           - katib-db-manager
+          - katib-ui
+        test-type: [integration, integration-ambient]
+        exclude:
+          # TODO: Remove this exclusion once katib-controller integration-ambient tests are implemented
+          - charm: katib-controller
+            test-type: integration-ambient
+          - charm: katib-db-manager
+            test-type: integration-ambient
+          - charm: katib-ui
+            test-type: integration
+
     steps:
       - uses: actions/checkout@v4
       - name: Install dependencies
@@ -166,7 +178,7 @@ jobs:
 
       - name: Integration tests
         run: |
-          tox -vve ${{ matrix.charm }}-integration -- --model testing --charm-path=${{ github.workspace }}/charms/${{ matrix.charm }}/${{ matrix.charm }}_ubuntu@24.04-amd64.charm
+          tox -vve ${{ matrix.charm }}-${{ matrix.test-type }} -- --model testing --charm-path=${{ github.workspace }}/charms/${{ matrix.charm }}/${{ matrix.charm }}_ubuntu@24.04-amd64.charm
 
       # Collect debug logs if failed
       - name: Dump Juju/k8s logs on failure
