@@ -48,7 +48,7 @@ K8S_RESOURCE_FILES = [
     "src/templates/katib-config-configmap.yaml.j2",
 ]
 
-WEBHOOK_PORT = 443
+K8S_SVC_WEBHOOK_PORT = 443
 CERTS_FOLDER = "/tmp/cert"
 KATIB_CONFIG_FILE = Path("src/templates/katib-config.yaml.j2")
 KATIB_CONFIG_DESTINATION_PATH = "/katib-config/katib-config.yaml"
@@ -97,7 +97,7 @@ class KatibControllerOperator(CharmBase):
 
         # Expose controller's ports
         webhook_port = ServicePort(
-            WEBHOOK_PORT, name="webhook", targetPort=int(self.model.config["webhook-port"])
+            int(self.model.config["webhook-port"]), name="webhook", targetPort=K8S_SVC_WEBHOOK_PORT
         )
         metrics_port = ServicePort(int(self.model.config["metrics-port"]), name="metrics")
         self.service_patcher = KubernetesServicePatch(
