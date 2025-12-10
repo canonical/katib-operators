@@ -2,14 +2,14 @@ options:
   webhook-port:
     type: int
     default: 443
-    description: Webhook port
+    description: Webhook port exposed by K8s
   metrics-port:
     type: int
     default: 8080
-    description: Metrics port
+    description: Metrics port exposed by K8s
   custom_images:
     type: string
-    default: | 
+    default: |
       default_trial_template: ''
       default_trial_template_enas: ''
       default_trial_template_pytorch: ''
