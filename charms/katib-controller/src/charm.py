@@ -48,9 +48,10 @@ K8S_RESOURCE_FILES = [
     "src/templates/katib-config-configmap.yaml.j2",
 ]
 
+KATIB_WEBHOOK_PORT = 8443
 CERTS_FOLDER = "/tmp/cert"
 KATIB_CONFIG_FILE = Path("src/templates/katib-config.yaml.j2")
-KATIB_CONFIG_DESTINTATION_PATH = "/katib-config/katib-config.yaml"
+KATIB_CONFIG_DESTINATION_PATH = "/katib-config/katib-config.yaml"
 
 logger = logging.getLogger(__name__)
 
@@ -95,7 +96,9 @@ class KatibControllerOperator(CharmBase):
         self._namespace = self.model.name
 
         # Expose controller's ports
-        webhook_port = ServicePort(int(self.model.config["webhook-port"]), name="webhook")
+        webhook_port = ServicePort(
+            int(self.model.config["webhook-port"]), name="webhook", targetPort=KATIB_WEBHOOK_PORT
+        )
         metrics_port = ServicePort(int(self.model.config["metrics-port"]), name="metrics")
         self.service_patcher = KubernetesServicePatch(
             self, [webhook_port, metrics_port], service_name=f"{self.model.app.name}"
@@ -185,7 +188,7 @@ class KatibControllerOperator(CharmBase):
                     ),
                     ContainerFileTemplate(
                         source_template_path=KATIB_CONFIG_FILE,
-                        destination_path=KATIB_CONFIG_DESTINTATION_PATH,
+                        destination_path=KATIB_CONFIG_DESTINATION_PATH,
                         context_function=self._katib_config_context,
                     ),
                 ],
@@ -258,7 +261,7 @@ class KatibControllerOperator(CharmBase):
                 "app_name": self.app.name,
                 "namespace": self._namespace,
                 "ca_bundle": b64encode(self._stored.ca.encode("ascii")).decode("utf-8"),
-                "webhookPort": self.model.config["webhook-port"],
+                "webhookPort": KATIB_WEBHOOK_PORT,
             }
         )
         return context_dict
@@ -281,7 +284,7 @@ class KatibControllerOperator(CharmBase):
         )
         context_dict.update(
             {
-                "webhookPort": self.model.config["webhook-port"],
+                "webhookPort": KATIB_WEBHOOK_PORT,
             }
         )
         return context_dict
