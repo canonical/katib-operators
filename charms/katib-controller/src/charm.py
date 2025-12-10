@@ -261,7 +261,7 @@ class KatibControllerOperator(CharmBase):
                 "app_name": self.app.name,
                 "namespace": self._namespace,
                 "ca_bundle": b64encode(self._stored.ca.encode("ascii")).decode("utf-8"),
-                "webhookPort": self.model.config["webhook-port"],
+                "webhookPort": KATIB_WEBHOOK_PORT,
             }
         )
         return context_dict
@@ -284,7 +284,7 @@ class KatibControllerOperator(CharmBase):
         )
         context_dict.update(
             {
-                "webhookPort": self.model.config["webhook-port"],
+                "webhookPort": KATIB_WEBHOOK_PORT,
             }
         )
         return context_dict
