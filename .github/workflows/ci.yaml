@@ -153,8 +153,6 @@ jobs:
             test-type: integration-ambient
           - charm: katib-db-manager
             test-type: integration-ambient
-          - charm: katib-ui
-            test-type: integration
 
     steps:
       - uses: actions/checkout@v4
