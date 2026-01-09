@@ -1,5 +1,5 @@
 {
-    "default_trial_template": "docker.io/ubuntu:22.04",
+    "default_trial_template": "ghcr.io/kubeflow/katib/pytorch-mnist-cpu:v0.19.0",
     "default_trial_template_enas": "ghcr.io/kubeflow/katib/enas-cnn-cifar10-cpu:v0.19.0",
     "default_trial_template_pytorch": "ghcr.io/kubeflow/katib/pytorch-mnist-cpu:v0.19.0",
     "early_stopping__medianstop": "ghcr.io/kubeflow/katib/earlystopping-medianstop:v0.19.0",

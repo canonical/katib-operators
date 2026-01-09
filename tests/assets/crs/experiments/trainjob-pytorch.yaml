@@ -1,0 +1,59 @@
+# Source: katib/examples/v1beta1/early-stopping/trainjob-pytorch.yaml
+# This example is slightly modified from upstream to consume less resources.
+# There's a `modified` comment where we diverge from upstream.
+# When updating this file, make sure to keep those modifications.
+---
+apiVersion: kubeflow.org/v1beta1
+kind: Experiment
+metadata:
+  namespace: kubeflow
+  name: torch-distributed-example
+spec:
+  parallelTrialCount: 1 # modified
+  maxTrialCount: 1 # modified
+  maxFailedTrialCount: 1 # modified
+  objective:
+    type: minimize
+    goal: 0.001
+    objectiveMetricName: loss
+  algorithm:
+    algorithmName: random
+  parameters:
+    - name: lr
+      parameterType: double
+      feasibleSpace:
+        min: "0.01"
+        max: "0.05"
+    - name: momentum
+      parameterType: double
+      feasibleSpace:
+        min: "0.5"
+        max: "0.9"
+  trialTemplate:
+    primaryContainerName: node
+    trialParameters:
+      - name: learningRate
+        description: Learning rate for the training model
+        reference: lr
+      - name: momentum
+        description: Momentum for the training model
+        reference: momentum
+    trialSpec:
+      apiVersion: trainer.kubeflow.org/v1alpha1
+      kind: TrainJob
+      spec:
+        runtimeRef:
+          name: torch-distributed
+        trainer:
+          numNodes: 2
+          image: ghcr.io/kubeflow/katib/pytorch-mnist-cpu:v0.19.0 # modified
+          command:
+            - "python3"
+            - "/opt/pytorch-mnist/mnist.py"
+            - "--epochs=1"
+            - "--lr=${trialParameters.learningRate}"
+            - "--momentum=${trialParameters.momentum}"
+          resources:  # modified
+            limits:  # modified
+              memory: "2Gi"  # modified
+              cpu: "1"  # modified
