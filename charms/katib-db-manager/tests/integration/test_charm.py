@@ -6,17 +6,29 @@ import yaml
 from charmed_kubeflow_chisme.testing import (
     GRAFANA_AGENT_APP,
     assert_logging,
+    assert_security_context,
     deploy_and_assert_grafana_agent,
+    generate_container_securitycontext_map,
+    get_pod_names,
 )
 from charms_dependencies import MYSQL_K8S
+from lightkube import Client
 from pytest_operator.plugin import OpsTest
 
 logger = logging.getLogger(__name__)
 
 
 METADATA = yaml.safe_load(Path("./metadata.yaml").read_text())
-APP_NAME = "katib-db-manager"
+APP_NAME = METADATA["name"]
+CONTAINERS_SECURITY_CONTEXT_MAP = generate_container_securitycontext_map(METADATA)
 DB_APP_NAME = "katib-db"
+
+
+@pytest.fixture(scope="session")
+def lightkube_client() -> Client:
+    """Returns lightkube Kubernetes client"""
+    client = Client(field_manager=f"{APP_NAME}")
+    return client
 
 
 class TestCharm:
@@ -91,3 +103,24 @@ class TestCharm:
         """Test logging is defined in relation data bag."""
         app = ops_test.model.applications[GRAFANA_AGENT_APP]
         await assert_logging(app)
+
+
+@pytest.mark.parametrize("container_name", list(CONTAINERS_SECURITY_CONTEXT_MAP.keys()))
+async def test_container_security_context(
+    ops_test: OpsTest,
+    lightkube_client: Client,
+    container_name: str,
+):
+    """Test container security context is correctly set.
+
+    Verify that container spec defines the security context with correct
+    user ID and group ID.
+    """
+    pod_name = get_pod_names(ops_test.model.name, APP_NAME)[0]
+    assert_security_context(
+        lightkube_client,
+        pod_name,
+        container_name,
+        CONTAINERS_SECURITY_CONTEXT_MAP,
+        ops_test.model.name,
+    )
