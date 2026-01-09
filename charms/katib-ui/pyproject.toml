@@ -89,6 +89,7 @@ optional = true
 
 [tool.poetry.group.integration.dependencies]
 charmed-kubeflow-chisme = "^0.4.16"
+lightkube = "^0.15.6"
 pytest = "^8.3.4"
 pytest-operator = "^0.43.2"
 

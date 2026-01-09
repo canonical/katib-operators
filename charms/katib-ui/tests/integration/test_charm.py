@@ -8,15 +8,23 @@ from pathlib import Path
 import pytest
 import yaml
 from charmed_kubeflow_chisme.testing import (
-    assert_path_reachable_through_ingress,
-    deploy_and_integrate_service_mesh_charms,
+    assert_security_context,
+    generate_container_securitycontext_map,
+    get_pod_names,
 )
+from lightkube import Client
 from pytest_operator.plugin import OpsTest
 
-EXPECTED_RESPONSE_TEXT = "Frontend"
-HTTP_PATH = "/katib/"
 METADATA = yaml.safe_load(Path("./metadata.yaml").read_text())
 APP_NAME = METADATA["name"]
+CONTAINERS_SECURITY_CONTEXT_MAP = generate_container_securitycontext_map(METADATA)
+
+
+@pytest.fixture(scope="session")
+def lightkube_client() -> Client:
+    """Returns lightkube Kubernetes client"""
+    client = Client(field_manager=f"{APP_NAME}")
+    return client
 
 
 @pytest.mark.skip_if_deployed
@@ -47,22 +55,22 @@ async def test_build_and_deploy(ops_test: OpsTest, request):
     assert ops_test.model.applications[APP_NAME].units[0].workload_status == "active"
 
 
-@pytest.mark.skip_if_deployed
-@pytest.mark.abort_on_fail
-async def test_deploy_and_relate_dependencies(ops_test: OpsTest):
-    """Deploy and integrate Istio dependencies with the application under test."""
-    await deploy_and_integrate_service_mesh_charms(
-        app=APP_NAME,
-        model=ops_test.model,
-    )
+@pytest.mark.parametrize("container_name", list(CONTAINERS_SECURITY_CONTEXT_MAP.keys()))
+async def test_container_security_context(
+    ops_test: OpsTest,
+    lightkube_client: Client,
+    container_name: str,
+):
+    """Test container security context is correctly set.
 
-
-@pytest.mark.abort_on_fail
-async def test_ui_is_accessible(ops_test: OpsTest):
-    """Verify that UI is accessible through the ingress gateway."""
-    await assert_path_reachable_through_ingress(
-        http_path=HTTP_PATH,
-        namespace=ops_test.model_name,
-        expected_content_type="text/html",
-        expected_response_text=EXPECTED_RESPONSE_TEXT,
+    Verify that container spec defines the security context with correct
+    user ID and group ID.
+    """
+    pod_name = get_pod_names(ops_test.model.name, APP_NAME)[0]
+    assert_security_context(
+        lightkube_client,
+        pod_name,
+        container_name,
+        CONTAINERS_SECURITY_CONTEXT_MAP,
+        ops_test.model.name,
     )
