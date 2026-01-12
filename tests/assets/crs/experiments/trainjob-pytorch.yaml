@@ -6,7 +6,6 @@
 apiVersion: kubeflow.org/v1beta1
 kind: Experiment
 metadata:
-  namespace: kubeflow
   name: torch-distributed-example
 spec:
   parallelTrialCount: 1 # modified
