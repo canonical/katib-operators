@@ -20,7 +20,7 @@ resources:
     type: oci-image
     description: OCI image for katb-controller
     auto-fetch: true
-    upstream-source: ghcr.io/kubeflow/katib/katib-controller:v0.19.0
+    upstream-source: docker.io/charmedkubeflow/katib-controller:v0.19.0-a33c918
 provides:
   metrics-endpoint:
     interface: prometheus_scrape
