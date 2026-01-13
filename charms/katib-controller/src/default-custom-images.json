@@ -9,7 +9,7 @@
     "suggestion__random": "ghcr.io/kubeflow/katib/suggestion-hyperopt:v0.19.0",
     "suggestion__tpe": "ghcr.io/kubeflow/katib/suggestion-hyperopt:v0.19.0",
     "suggestion__grid": "ghcr.io/kubeflow/katib/suggestion-optuna:v0.19.0",
-    "suggestion__hyperband": "ghcr.io/kubeflow/katib/suggestion-hyperband:v0.19.0",
+    "suggestion__hyperband": "docker.io/charmedkubeflow/suggestion-hyperband:v0.19.0-d6cac4d",
     "suggestion__bayesianoptimization": "ghcr.io/kubeflow/katib/suggestion-skopt:v0.19.0",
     "suggestion__cmaes": "docker.io/charmedkubeflow/suggestion-goptuna:v0.19.0-3f14187",
     "suggestion__sobol": "docker.io/charmedkubeflow/suggestion-goptuna:v0.19.0-3f14187",
