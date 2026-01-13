@@ -20,7 +20,7 @@ resources:
     type: oci-image
     description: Backing OCI image
     auto-fetch: true
-    upstream-source: ghcr.io/kubeflow/katib/katib-db-manager:v0.19.0
+    upstream-source: docker.io/charmedkubeflow/katib-db-manager:v0.19.0-397157e
 requires:
   relational-db:
     interface: mysql_client
