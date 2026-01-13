@@ -2,7 +2,7 @@
     "default_trial_template": "ghcr.io/kubeflow/katib/pytorch-mnist-cpu:v0.19.0",
     "default_trial_template_enas": "ghcr.io/kubeflow/katib/enas-cnn-cifar10-cpu:v0.19.0",
     "default_trial_template_pytorch": "ghcr.io/kubeflow/katib/pytorch-mnist-cpu:v0.19.0",
-    "early_stopping__medianstop": "ghcr.io/kubeflow/katib/earlystopping-medianstop:v0.19.0",
+    "early_stopping__medianstop": "docker.io/charmedkubeflow/earlystopping-medianstop:v0.19.0-5230dd9",
     "metrics_collector_sidecar__stdout": "ghcr.io/kubeflow/katib/file-metrics-collector:v0.19.0",
     "metrics_collector_sidecar__file": "ghcr.io/kubeflow/katib/file-metrics-collector:v0.19.0",
     "metrics_collector_sidecar__tensorflow_event": "ghcr.io/kubeflow/katib/tfevent-metrics-collector:v0.19.0",
