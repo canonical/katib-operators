@@ -17,7 +17,7 @@ resources:
     type: oci-image
     description: Backing OCI image
     auto-fetch: true
-    upstream-source: ghcr.io/kubeflow/katib/katib-ui:v0.19.0
+    upstream-source: docker.io/charmedkubeflow/katib-ui:v0.19.0-b650352
 requires:
   ingress:
     interface: ingress
@@ -75,7 +75,7 @@ requires:
       Allow a cross-model application access to catalogue via the service mesh.
       This relation provides additional data required by the service mesh to enforce cross-model authorization policies.
   istio-ingress-route:
-      interface: istio_ingress_route
+    interface: istio_ingress_route
 provides:
   provide-cmr-mesh:
     interface: cross_model_mesh
