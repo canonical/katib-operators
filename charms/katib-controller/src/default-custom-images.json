@@ -16,5 +16,5 @@
     "suggestion__multivariate_tpe": "ghcr.io/kubeflow/katib/suggestion-optuna:v0.19.0",
     "suggestion__enas": "docker.io/charmedkubeflow/suggestion-enas:v0.19.0-cc9514e",
     "suggestion__darts": "docker.io/charmedkubeflow/suggestion-nas-darts:v0.19.0-aeb722e",
-    "suggestion__pbt": "ghcr.io/kubeflow/katib/suggestion-pbt:v0.19.0"
+    "suggestion__pbt": "docker.io/charmedkubeflow/suggestion-pbt:v0.19.0-fa95782"
 }
