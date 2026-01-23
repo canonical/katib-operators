@@ -6,6 +6,7 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
+from charmed_kubeflow_chisme.exceptions import GenericCharmRuntimeError
 from ops.model import ActiveStatus, BlockedStatus, TooManyRelatedAppsError
 from ops.testing import Harness
 
@@ -40,9 +41,16 @@ def harness() -> Harness:
 
 @pytest.fixture()
 def mocked_lightkube_client(mocker):
-    """Mocks the Lightkube Client in charm.py, returning a mock instead."""
+    """Mocks the Lightkube Client in charm.py and service_mesh_component.py.
+
+    Returns a mock instead of the real client.
+    """
     mocked_lightkube_client = MagicMock()
     mocker.patch("charm.lightkube.Client", return_value=mocked_lightkube_client)
+    mocker.patch(
+        "components.service_mesh_component.Client",
+        return_value=mocked_lightkube_client,
+    )
     yield mocked_lightkube_client
 
 
@@ -55,13 +63,35 @@ def mocked_kubernetes_service_patch(mocker):
     yield mocked_kubernetes_service_patch
 
 
-def test_log_forwarding(harness, mocked_lightkube_client, mocked_kubernetes_service_patch):
+@pytest.fixture()
+def mocked_service_mesh_component(mocker):
+    """Mocks the ServiceMeshComponent for the charm."""
+    mocked_service_mesh = MagicMock()
+    # Mock both get_status method and status property to return ActiveStatus
+    active_status = ActiveStatus()
+    mocked_service_mesh.get_status.return_value = active_status
+    mocked_service_mesh.status = active_status
+    mocker.patch("charm.ServiceMeshComponent", return_value=mocked_service_mesh)
+    yield mocked_service_mesh
+
+
+def test_log_forwarding(
+    harness,
+    mocked_lightkube_client,
+    mocked_kubernetes_service_patch,
+    mocked_service_mesh_component,
+):
     with patch("charm.LogForwarder") as mock_logging:
         harness.begin()
         mock_logging.assert_called_once_with(charm=harness.charm)
 
 
-def test_not_leader(harness, mocked_lightkube_client, mocked_kubernetes_service_patch):
+def test_not_leader(
+    harness,
+    mocked_lightkube_client,
+    mocked_kubernetes_service_patch,
+    mocked_service_mesh_component,
+):
     """Test when we are not the leader."""
     harness.begin_with_initial_hooks()
     # Assert that we are not Active, and that the leadership-gate is the cause.
@@ -70,7 +100,10 @@ def test_not_leader(harness, mocked_lightkube_client, mocked_kubernetes_service_
 
 
 def test_kubernetes_resources_created_method(
-    harness, mocked_lightkube_client, mocked_kubernetes_service_patch
+    harness,
+    mocked_lightkube_client,
+    mocked_kubernetes_service_patch,
+    mocked_service_mesh_component,
 ):
     """Test whether we try to create Kubernetes resources when we have leadership."""
     # Arrange
@@ -95,7 +128,12 @@ def test_kubernetes_resources_created_method(
     assert isinstance(harness.charm.kubernetes_resources.status, ActiveStatus)
 
 
-def test_get_certs(harness, mocked_lightkube_client, mocked_kubernetes_service_patch):
+def test_get_certs(
+    harness,
+    mocked_lightkube_client,
+    mocked_kubernetes_service_patch,
+    mocked_service_mesh_component,
+):
     """Test certs generated on init."""
     # Act
     harness.begin()
@@ -109,7 +147,10 @@ def test_get_certs(harness, mocked_lightkube_client, mocked_kubernetes_service_p
 
 
 def test_no_k8s_service_info_relation(
-    harness, mocked_lightkube_client, mocked_kubernetes_service_patch
+    harness,
+    mocked_lightkube_client,
+    mocked_kubernetes_service_patch,
+    mocked_service_mesh_component,
 ):
     """Test the k8s_service_info component and charm are not active when no relation is present."""
     harness.set_leader(True)
@@ -124,13 +165,15 @@ def test_no_k8s_service_info_relation(
 
 
 def test_many_k8s_service_info_relations(
-    harness, mocked_lightkube_client, mocked_kubernetes_service_patch
+    harness,
+    mocked_lightkube_client,
+    mocked_kubernetes_service_patch,
+    mocked_service_mesh_component,
 ):
     """Test the k8s_service_info component and charm are not active when >1
     k8s_service_info relations are present.
     """
     harness.set_leader(True)
-
     setup_k8s_service_info_relation(harness, "remote-app-one")
     setup_k8s_service_info_relation(harness, "remote-app-two")
 
@@ -144,10 +187,14 @@ def test_many_k8s_service_info_relations(
 
 
 def test_pebble_services_running(
-    harness, mocked_lightkube_client, mocked_kubernetes_service_patch
+    harness,
+    mocked_lightkube_client,
+    mocked_kubernetes_service_patch,
+    mocked_service_mesh_component,
 ):
     """Test that if the Kubernetes Component is Active, the pebble services successfully start."""
     # Arrange
+    harness.set_leader(True)
     harness.set_model_name(TEST_NAMESPACE)
     setup_k8s_service_info_relation(harness, "remote-test-app")
     harness.begin_with_initial_hooks()
@@ -177,3 +224,91 @@ def setup_k8s_service_info_relation(harness: Harness, name: str):
         app_data=K8S_SERVICE_INFO_RELATION_DATA,
     )
     return rel_id
+
+
+@pytest.mark.parametrize(
+    "relation_exists,expected_policies_count",
+    [
+        (True, 1),
+        (None, 0),
+    ],
+)
+def test_service_mesh_prm_reconcile_called(
+    harness,
+    mocked_lightkube_client,
+    mocked_kubernetes_service_patch,
+    relation_exists,
+    expected_policies_count,
+):
+    """Test PolicyResourceManager.reconcile is called with correct policies based on relation."""
+    harness.set_leader(True)
+    harness.begin()
+
+    # Mock the service mesh relation
+    with patch.object(harness.charm.service_mesh.component._mesh, "_relation", relation_exists):
+        with patch.object(
+            harness.charm.service_mesh.component._policy_resource_manager, "reconcile"
+        ) as mock_reconcile:
+            # Call the configure method
+            harness.charm.service_mesh.component._configure_app_leader(None)
+
+            # Assert reconcile was called with the expected parameters
+            mock_reconcile.assert_called_once()
+            call_args = mock_reconcile.call_args
+            assert call_args.kwargs["policies"] == []
+            assert "mesh_type" in call_args.kwargs
+            assert "raw_policies" in call_args.kwargs
+            assert len(call_args.kwargs["raw_policies"]) == expected_policies_count
+
+
+def test_service_mesh_prm_remove_called(
+    harness, mocked_lightkube_client, mocked_kubernetes_service_patch
+):
+    """Test that PolicyResourceManager.reconcile is called with empty policies on remove."""
+    harness.set_leader(True)
+    harness.begin()
+
+    with patch.object(
+        harness.charm.service_mesh.component._policy_resource_manager, "reconcile"
+    ) as mock_reconcile:
+        # Call the remove method
+        harness.charm.service_mesh.component.remove(None)
+
+        # Assert reconcile was called with empty policies
+        mock_reconcile.assert_called_once()
+        call_args = mock_reconcile.call_args
+        assert call_args.kwargs["policies"] == []
+        assert call_args.kwargs["raw_policies"] == []
+
+
+@pytest.mark.parametrize(
+    "exception_type,exception_msg",
+    [
+        (RuntimeError, "Invalid policy"),
+        (TypeError, "Invalid type"),
+    ],
+)
+def test_service_mesh_get_status_error_handling(
+    harness,
+    mocked_lightkube_client,
+    mocked_kubernetes_service_patch,
+    exception_type,
+    exception_msg,
+):
+    """Test get_status raises GenericCharmRuntimeError on validation errors."""
+    harness.set_leader(True)
+    harness.begin()
+
+    # Mock the service mesh relation
+    with patch.object(harness.charm.service_mesh.component._mesh, "_relation", True):
+        with patch.object(
+            harness.charm.service_mesh.component._policy_resource_manager, "_validate_raw_policies"
+        ) as mock_validate:
+            # Make validation raise the specified exception
+            mock_validate.side_effect = exception_type(exception_msg)
+
+            # Assert that get_status raises GenericCharmRuntimeError
+            with pytest.raises(GenericCharmRuntimeError) as exc_info:
+                harness.charm.service_mesh.component.get_status()
+
+            assert "Error validating raw policies" in str(exc_info.value)
