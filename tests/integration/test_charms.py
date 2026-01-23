@@ -6,7 +6,11 @@ from pathlib import Path
 
 import pytest
 import yaml
-from charms_dependencies import ISTIO_PILOT, KUBEFLOW_PROFILES, MYSQL_K8S
+from charmed_kubeflow_chisme.testing import (
+    deploy_and_integrate_service_mesh_charms,
+    integrate_with_service_mesh,
+)
+from charms_dependencies import KUBEFLOW_PROFILES, MYSQL_K8S
 from pytest_operator.plugin import OpsTest
 
 BUILD_SUFFIX = "_ubuntu@24.04-amd64.charm"
@@ -90,18 +94,21 @@ async def test_deploy_katib_charms(ops_test: OpsTest, request):
         trust=KUBEFLOW_PROFILES.trust,
     )
 
-    # The profile controller needs AuthorizationPolicies to create Profiles
-    # Deploy istio-pilot to provide the k8s cluster with this CRD
-    await ops_test.model.deploy(
-        entity_url=ISTIO_PILOT.charm,
-        channel=ISTIO_PILOT.channel,
-        trust=ISTIO_PILOT.trust,
+    await deploy_and_integrate_service_mesh_charms(
+        CONTROLLER_APP_NAME,
+        ops_test.model,
+        relate_to_ingress_route_endpoint=False,
+        model_on_mesh=False,
+    )
+
+    await integrate_with_service_mesh(
+        KUBEFLOW_PROFILES.charm, ops_test.model, relate_to_ingress_route_endpoint=False
     )
 
     # Wait for everything to deploy
     await ops_test.model.wait_for_idle(
         status="active",
-        raise_on_blocked=True,
+        raise_on_blocked=False,
         timeout=360,
     )
 

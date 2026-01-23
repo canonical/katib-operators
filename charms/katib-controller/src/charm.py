@@ -35,6 +35,7 @@ from ops.main import main
 from certs import gen_certs
 from components.k8s_service_info_requirer_component import K8sServiceInfoRequirerComponent
 from components.pebble_component import KatibControllerInputs, KatibControllerPebbleService
+from components.service_mesh_component import ServiceMeshComponent
 
 DEFAULT_IMAGES_FILE = "src/default-custom-images.json"
 with open(DEFAULT_IMAGES_FILE, "r") as json_file:
@@ -172,6 +173,11 @@ class KatibControllerOperator(CharmBase):
             depends_on=[self.leadership_gate],
         )
 
+        self.service_mesh = self.charm_reconciler.add(
+            component=ServiceMeshComponent(charm=self, name="service-mesh"),
+            depends_on=[self.leadership_gate],
+        )
+
         self.katib_controller_container = self.charm_reconciler.add(
             component=KatibControllerPebbleService(
                 charm=self,
@@ -208,6 +214,7 @@ class KatibControllerOperator(CharmBase):
                 self.leadership_gate,
                 self.kubernetes_resources,
                 self.k8s_service_info_requirer,
+                self.service_mesh,
             ],
         )
 
