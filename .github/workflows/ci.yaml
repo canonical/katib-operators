@@ -228,9 +228,7 @@ jobs:
 
       - name: Run test
         run: |
-          # Requires the model to be called kubeflow due to kfp-viewer
-          juju add-model kubeflow
-          tox -e bundle-integration -- --model kubeflow --charms-path=${{ github.workspace }}/charms/
+          tox -e bundle-integration -- --model testing --charms-path=${{ github.workspace }}/charms/
 
       - name: Get pod statuses
         run: kubectl get all -A
@@ -241,27 +239,27 @@ jobs:
         if: failure()
 
       - name: Get katib-controller workload logs
-        run: kubectl logs --tail 100 -nkubeflow -lapp.kubernetes.io/name=katib-controller
+        run: kubectl logs --tail 100 -n testing -lapp.kubernetes.io/name=katib-controller
         if: failure()
 
       - name: Get katib-controller operator logs
-        run: kubectl logs --tail 100 -nkubeflow -loperator.juju.is/name=katib-controller
+        run: kubectl logs --tail 100 -n testing -loperator.juju.is/name=katib-controller
         if: failure()
 
       - name: Get katib-ui workload logs
-        run: kubectl logs --tail 100 -nkubeflow -lapp.kubernetes.io/name=katib-ui
+        run: kubectl logs --tail 100 -n testing -lapp.kubernetes.io/name=katib-ui
         if: failure()
 
       - name: Get katib-ui operator logs
-        run: kubectl logs --tail 100 -nkubeflow -loperator.juju.is/name=katib-ui
+        run: kubectl logs --tail 100 -n testing -loperator.juju.is/name=katib-ui
         if: failure()
 
       - name: Get katib-db-manager workload logs
-        run: kubectl logs --tail 100 -nkubeflow -lapp.kubernetes.io/name=katib-db-manager
+        run: kubectl logs --tail 100 -n testing -lapp.kubernetes.io/name=katib-db-manager
         if: failure()
 
       - name: Get katib-db-manager operator logs
-        run: kubectl logs --tail 100 -nkubeflow -loperator.juju.is/name=katib-db-manager
+        run: kubectl logs --tail 100 -n testing -loperator.juju.is/name=katib-db-manager
         if: failure()
 
       - name: Upload charmcraft logs
