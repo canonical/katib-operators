@@ -5,7 +5,7 @@ import logging
 
 import tenacity
 import yaml
-from lightkube import ApiError
+from lightkube import ApiError, Client
 from lightkube.generic_resource import create_namespaced_resource
 
 LOGGER = logging.getLogger(__name__)
@@ -27,7 +27,7 @@ TRIAL = create_namespaced_resource(
 )
 
 
-def create_experiment(client, exp_path, namespace) -> str:
+def create_experiment(client: Client, exp_path: str, namespace: str) -> str:
     """Create Experiment instance."""
     with open(exp_path) as f:
         exp_yaml = yaml.safe_load(f.read())
@@ -36,7 +36,7 @@ def create_experiment(client, exp_path, namespace) -> str:
     return exp_yaml["metadata"]["name"]
 
 
-def delete_experiment(client, name, namespace):
+def delete_experiment(client: Client, name: str, namespace: str):
     """Delete Experiment instance."""
     client.delete(EXPERIMENT, name=name, namespace=namespace)
 
@@ -46,7 +46,7 @@ def delete_experiment(client, name, namespace):
     stop=tenacity.stop_after_delay(30),
     reraise=True,
 )
-def assert_experiment_exists(client, name, namespace):
+def assert_experiment_exists(client: Client, name: str, namespace: str):
     """Assert that the Katib experiment exists.
 
     Retries multiple times using tenacity to allow time for the Katib experiment to be created.
@@ -67,7 +67,7 @@ def assert_experiment_exists(client, name, namespace):
     reraise=True,
 )
 def assert_experiment_status_running_succeeded(
-    client, name, namespace, logger: logging.Logger = None
+    client: Client, name: str, namespace: str, logger: logging.Logger = None
 ):
     """Assert that the experiment status is Running or Succeeded.
 
@@ -93,20 +93,22 @@ def assert_experiment_status_running_succeeded(
     stop=tenacity.stop_after_attempt(10),
     reraise=True,
 )
-def assert_experiment_deleted(client, experiment_name, namespace, logger: logging.Logger = None):
+def assert_experiment_deleted(
+    client: Client, name: str, namespace: str, logger: logging.Logger = None
+):
     """Assert that the Katib experiment is deleted.
 
     Retries multiple times to allow for the experiment to be deleted.
     """
     logger = logger or LOGGER
-    logger.info(f"Waiting for Experiment {experiment_name} to be deleted.")
+    logger.info(f"Waiting for Experiment {name} to be deleted.")
     deleted = False
     try:
-        client.get(EXPERIMENT, experiment_name, namespace=namespace)
+        client.get(EXPERIMENT, name, namespace=namespace)
     except ApiError as error:
-        logger.info(f"Unable to get Experiment {experiment_name} (status: {error.status.code})")
+        logger.info(f"Unable to get Experiment {name} (status: {error.status.code})")
         if error.status.code != 404:
             raise
         deleted = True
 
-    assert deleted, f"Waited too long for Experiment {experiment_name} to be deleted!"
+    assert deleted, f"Waited too long for Experiment {name} to be deleted!"
