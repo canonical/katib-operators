@@ -12,15 +12,12 @@ containers:
     resource: oci-image
     uid: 584792
     gid: 584792
-    mounts:
-    - storage: config
-      location: /katib-config
 resources:
   oci-image:
     type: oci-image
     description: OCI image for katb-controller
     auto-fetch: true
-    upstream-source: docker.io/charmedkubeflow/katib-controller:v0.19.0-a33c918
+    upstream-source: docker.io/charmedkubeflow/katib-controller:v0.19.0-698153e
 provides:
   metrics-endpoint:
     interface: prometheus_scrape
@@ -48,8 +45,4 @@ requires:
     description: |
       Allow a cross-model application access to catalogue via the service mesh.
       This relation provides additional data required by the service mesh to enforce cross-model authorization policies.
-storage:
-  config:
-    type: filesystem
-    minimum-size: 1M
 charm-user: non-root
