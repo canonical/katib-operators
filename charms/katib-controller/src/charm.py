@@ -52,7 +52,7 @@ K8S_RESOURCE_FILES = [
 KATIB_WEBHOOK_PORT = 8443
 CERTS_FOLDER = Path("/tmp/cert")
 KATIB_CONFIG_FILE = Path("src/templates/katib-config.yaml.j2")
-KATIB_CONFIG_DESTINTATION_PATH = "/katib-config/katib-config.yaml"
+KATIB_CONFIG_DESTINATION_PATH = "/katib-config/katib-config.yaml"
 
 logger = logging.getLogger(__name__)
 
@@ -194,7 +194,7 @@ class KatibControllerOperator(CharmBase):
                     ),
                     ContainerFileTemplate(
                         source_template_path=KATIB_CONFIG_FILE,
-                        destination_path=KATIB_CONFIG_DESTINTATION_PATH,
+                        destination_path=KATIB_CONFIG_DESTINATION_PATH,
                         context_function=self._katib_config_context,
                     ),
                 ],
