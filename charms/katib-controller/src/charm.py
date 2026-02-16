@@ -52,6 +52,7 @@ K8S_RESOURCE_FILES = [
 KATIB_WEBHOOK_PORT = 8443
 CERTS_FOLDER = Path("/tmp/cert")
 KATIB_CONFIG_FILE = Path("src/templates/katib-config.yaml.j2")
+KATIB_CONFIG_DESTINATION_PATH = "/katib-config/katib-config.yaml"
 
 logger = logging.getLogger(__name__)
 
@@ -94,12 +95,6 @@ class KatibControllerOperator(CharmBase):
         super().__init__(*args)
 
         self._namespace = self.model.name
-
-        # Storage
-        self._container_name = next(iter(self.meta.containers))
-        _container_meta = self.meta.containers[self._container_name]
-        _storage_name = next(iter(_container_meta.mounts))
-        self._storage_path = Path(_container_meta.mounts[_storage_name].location)
 
         # Expose controller's ports
         webhook_port = ServicePort(
@@ -199,7 +194,7 @@ class KatibControllerOperator(CharmBase):
                     ),
                     ContainerFileTemplate(
                         source_template_path=KATIB_CONFIG_FILE,
-                        destination_path=self._storage_path / "katib-config.yaml",
+                        destination_path=KATIB_CONFIG_DESTINATION_PATH,
                         context_function=self._katib_config_context,
                     ),
                 ],
