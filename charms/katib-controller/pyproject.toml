@@ -15,7 +15,7 @@ log_cli_level = "INFO"
 # Formatting tools configuration
 [tool.black]
 line-length = 99
-target-version = ["py38"]
+target-version = ["py312"]
 
 [tool.isort]
 line_length = 99
@@ -46,12 +46,14 @@ package-mode = false
 optional = true
 
 [tool.poetry.group.charm.dependencies]
-charmed-kubeflow-chisme = ">=0.4.11"
+charmed-kubeflow-chisme = "^0.4.22"
 cosl = "^0.0.50"
 lightkube = "^0.15.6"
 ops = "^2.17.1"
 pydantic = "^2.6.4"
 pyyaml = "^6.0.1"
+charmed-service-mesh-helpers = "^0.4.0"
+lightkube-extensions = "^0.3.0"
 
 [tool.poetry.group.fmt]
 optional = true
@@ -80,7 +82,6 @@ optional = true
 coverage = "^7.6.1"
 ops = "^2.17.1"
 pytest = "^8.3.4"
-pytest-lazy-fixture = "^0.6.3"
 pytest-mock = "^3.14.0"
 pyyaml = "^6.0.1"
 
@@ -89,7 +90,7 @@ optional = true
 
 [tool.poetry.group.integration.dependencies]
 juju = "<4.0"
-charmed-kubeflow-chisme = ">=0.4.14"
+charmed-kubeflow-chisme = "^0.4.22"
 lightkube = "^0.15.6"
 pytest = "^8.3.4"
 pytest-operator = "^0.38.0"
