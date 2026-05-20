@@ -35,7 +35,7 @@ logger = logging.getLogger(__name__)
 
 @pytest.mark.skip_if_deployed
 @pytest.mark.abort_on_fail
-async def test_deploy_katib_charms(ops_test: OpsTest, request):
+async def test_deploy_katib_charms(ops_test: OpsTest, request: pytest.FixtureRequest):
     # Build katib-controller, katib-db-manager, and katib-ui charms
     if charms_path := request.config.getoption("--charms-path"):
         controller_charm = (
