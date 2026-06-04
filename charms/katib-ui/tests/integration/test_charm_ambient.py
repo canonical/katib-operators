@@ -11,6 +11,7 @@ from charmed_kubeflow_chisme.testing import (
     assert_path_reachable_through_ingress,
     deploy_and_integrate_service_mesh_charms,
 )
+from charms_dependencies import KATIB_DB_MANAGER
 from pytest_operator.plugin import OpsTest
 
 EXPECTED_RESPONSE_TEXT = "Frontend"
@@ -39,6 +40,13 @@ async def test_build_and_deploy(ops_test: OpsTest, request):
     await ops_test.model.deploy(
         entity_url, resources=resources, application_name=APP_NAME, trust=True
     )
+
+    # Deploy dependency katib-db-manager and integrate to provide the
+    # k8s-service-info relation required by katib-ui.
+    await ops_test.model.deploy(
+        KATIB_DB_MANAGER.charm, channel=KATIB_DB_MANAGER.channel, trust=KATIB_DB_MANAGER.trust
+    )
+    await ops_test.model.integrate(APP_NAME, KATIB_DB_MANAGER.charm)
 
     # NOTE: idle_period is used to ensure all resources are deployed
     await ops_test.model.wait_for_idle(

@@ -15,6 +15,11 @@ ISTIO_INGRESS_ROUTE_RELATION = "istio-ingress-route"
 INGRESS_RELATION = "ingress"
 ISTIO_GATEWAY_APP = "istio-gateway"
 ISTIO_INGRESS_K8S_APP = "istio-ingress-k8s"
+K8S_SERVICE_INFO_RELATION = "k8s-service-info"
+DB_MANAGER_APP = "katib-db-manager"
+DB_MANAGER_SERVICE_NAME = "katib-db-manager"
+DB_MANAGER_SERVICE_PORT = "6789"
+EXPECTED_DB_MANAGER_HOST = f"{DB_MANAGER_SERVICE_NAME}.{TEST_NAMESPACE}.svc"
 
 EXPECTED_PEBBLE_LAYER = {
     "services": {
@@ -24,10 +29,25 @@ EXPECTED_PEBBLE_LAYER = {
             "command": f"./katib-ui --port={TEST_PORT}",
             "working-dir": "/app",
             "startup": "enabled",
-            "environment": {"KATIB_CORE_NAMESPACE": TEST_NAMESPACE},
+            "environment": {
+                "KATIB_CORE_NAMESPACE": TEST_NAMESPACE,
+                "KATIB_DB_MANAGER_SERVICE_HOST": EXPECTED_DB_MANAGER_HOST,
+                "KATIB_DB_MANAGER_SERVICE_PORT": DB_MANAGER_SERVICE_PORT,
+            },
         }
     },
 }
+
+
+def add_k8s_service_info_relation(harness: Harness) -> int:
+    """Add a k8s-service-info relation with katib-db-manager data to the harness."""
+    rel_id = harness.add_relation(K8S_SERVICE_INFO_RELATION, DB_MANAGER_APP)
+    harness.update_relation_data(
+        rel_id,
+        DB_MANAGER_APP,
+        {"name": DB_MANAGER_SERVICE_NAME, "port": DB_MANAGER_SERVICE_PORT},
+    )
+    return rel_id
 
 
 @pytest.fixture
@@ -36,6 +56,7 @@ def harness() -> Harness:
     harness = Harness(KatibUIOperator)
     harness.set_leader(True)
     harness.set_model_name(TEST_NAMESPACE)
+    add_k8s_service_info_relation(harness)
     return harness
 
 
@@ -175,6 +196,8 @@ def test_pebble_layer(
     # Check environment variables
     test_env = pebble_plan_info["services"]["katib-ui"]["environment"]
     assert test_env["KATIB_CORE_NAMESPACE"] == TEST_NAMESPACE
+    assert test_env["KATIB_DB_MANAGER_SERVICE_HOST"] == EXPECTED_DB_MANAGER_HOST
+    assert test_env["KATIB_DB_MANAGER_SERVICE_PORT"] == DB_MANAGER_SERVICE_PORT
 
 
 def test_pebble_services_running(
@@ -300,3 +323,53 @@ def test_config_changed_event(
     # Assert
     mocked_resource_handler.apply.assert_called()
     assert isinstance(harness.charm.model.unit.status, ActiveStatus)
+
+
+def test_no_k8s_service_info_relation_blocked(
+    mocked_resource_handler,
+    mocked_lightkube_client,
+    mocked_kubernetes_service_patcher,
+    mocked_istio_ingress_route_requirer,
+    mocked_service_mesh_consumer,
+    mocked_kubeflow_dashboard_links_requirer,
+    mocked_load_in_cluster_generic_resources,
+):
+    """Test that the charm is blocked when the k8s-service-info relation is missing."""
+    harness = Harness(KatibUIOperator)
+    harness.set_leader(True)
+    harness.set_model_name(TEST_NAMESPACE)
+    harness.begin_with_initial_hooks()
+
+    # Act
+    harness.charm.on.config_changed.emit()
+
+    # Assert
+    assert isinstance(harness.charm.model.unit.status, BlockedStatus)
+    assert "Please add the missing relation." in str(harness.charm.model.unit.status.message)
+
+
+def test_empty_k8s_service_info_relation_waiting(
+    mocked_resource_handler,
+    mocked_lightkube_client,
+    mocked_kubernetes_service_patcher,
+    mocked_istio_ingress_route_requirer,
+    mocked_service_mesh_consumer,
+    mocked_kubeflow_dashboard_links_requirer,
+    mocked_load_in_cluster_generic_resources,
+):
+    """Test that the charm waits when the k8s-service-info relation has no data."""
+    harness = Harness(KatibUIOperator)
+    harness.set_leader(True)
+    harness.set_model_name(TEST_NAMESPACE)
+    # Add the relation but do not populate any data in the relation data bag.
+    harness.add_relation(K8S_SERVICE_INFO_RELATION, DB_MANAGER_APP)
+    harness.begin_with_initial_hooks()
+
+    # Act
+    harness.charm.on.config_changed.emit()
+
+    # Assert
+    assert isinstance(harness.charm.model.unit.status, WaitingStatus)
+    assert f"Empty or missing data in {K8S_SERVICE_INFO_RELATION} relation." in str(
+        harness.charm.model.unit.status.message
+    )
