@@ -48,9 +48,11 @@ async def test_build_and_deploy(ops_test: OpsTest, request):
     )
     await ops_test.model.integrate(APP_NAME, KATIB_DB_MANAGER.charm)
 
-    # NOTE: idle_period is used to ensure all resources are deployed
+    # NOTE: idle_period is used to ensure all resources are deployed.
+    # raise_on_blocked is disabled because katib-ui is transiently blocked at
+    # startup until the k8s-service-info relation data is received.
     await ops_test.model.wait_for_idle(
-        apps=[APP_NAME], status="active", raise_on_blocked=True, timeout=60 * 10, idle_period=30
+        apps=[APP_NAME], status="active", raise_on_blocked=False, timeout=60 * 10, idle_period=30
     )
     assert ops_test.model.applications[APP_NAME].units[0].workload_status == "active"
 
