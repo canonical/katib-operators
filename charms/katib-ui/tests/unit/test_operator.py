@@ -325,7 +325,7 @@ def test_config_changed_event(
     assert isinstance(harness.charm.model.unit.status, ActiveStatus)
 
 
-def test_no_k8s_service_info_relation_blocked(
+def test_no_k8s_service_info_relation_active(
     mocked_resource_handler,
     mocked_lightkube_client,
     mocked_kubernetes_service_patcher,
@@ -334,7 +334,7 @@ def test_no_k8s_service_info_relation_blocked(
     mocked_kubeflow_dashboard_links_requirer,
     mocked_load_in_cluster_generic_resources,
 ):
-    """Test that the charm is blocked when the k8s-service-info relation is missing."""
+    """Test that the charm stays active and omits DB manager env vars without the relation."""
     harness = Harness(KatibUIOperator)
     harness.set_leader(True)
     harness.set_model_name(TEST_NAMESPACE)
@@ -343,12 +343,16 @@ def test_no_k8s_service_info_relation_blocked(
     # Act
     harness.charm.on.config_changed.emit()
 
-    # Assert
-    assert isinstance(harness.charm.model.unit.status, BlockedStatus)
-    assert "Please add the missing relation." in str(harness.charm.model.unit.status.message)
+    # Assert: charm remains active (backward compatible) and does not set the DB manager env vars
+    assert isinstance(harness.charm.model.unit.status, ActiveStatus)
+    pebble_plan_info = harness.get_container_pebble_plan("katib-ui").to_dict()
+    test_env = pebble_plan_info["services"]["katib-ui"]["environment"]
+    assert test_env["KATIB_CORE_NAMESPACE"] == TEST_NAMESPACE
+    assert "KATIB_DB_MANAGER_SERVICE_HOST" not in test_env
+    assert "KATIB_DB_MANAGER_SERVICE_PORT" not in test_env
 
 
-def test_empty_k8s_service_info_relation_waiting(
+def test_empty_k8s_service_info_relation_active(
     mocked_resource_handler,
     mocked_lightkube_client,
     mocked_kubernetes_service_patcher,
@@ -357,7 +361,7 @@ def test_empty_k8s_service_info_relation_waiting(
     mocked_kubeflow_dashboard_links_requirer,
     mocked_load_in_cluster_generic_resources,
 ):
-    """Test that the charm waits when the k8s-service-info relation has no data."""
+    """Test that the charm stays active and omits DB manager env vars with empty relation data."""
     harness = Harness(KatibUIOperator)
     harness.set_leader(True)
     harness.set_model_name(TEST_NAMESPACE)
@@ -368,8 +372,10 @@ def test_empty_k8s_service_info_relation_waiting(
     # Act
     harness.charm.on.config_changed.emit()
 
-    # Assert
-    assert isinstance(harness.charm.model.unit.status, WaitingStatus)
-    assert f"Empty or missing data in {K8S_SERVICE_INFO_RELATION} relation." in str(
-        harness.charm.model.unit.status.message
-    )
+    # Assert: charm remains active (backward compatible) and does not set the DB manager env vars
+    assert isinstance(harness.charm.model.unit.status, ActiveStatus)
+    pebble_plan_info = harness.get_container_pebble_plan("katib-ui").to_dict()
+    test_env = pebble_plan_info["services"]["katib-ui"]["environment"]
+    assert test_env["KATIB_CORE_NAMESPACE"] == TEST_NAMESPACE
+    assert "KATIB_DB_MANAGER_SERVICE_HOST" not in test_env
+    assert "KATIB_DB_MANAGER_SERVICE_PORT" not in test_env

@@ -41,18 +41,23 @@ async def test_build_and_deploy(ops_test: OpsTest, request):
         entity_url, resources=resources, application_name=APP_NAME, trust=True
     )
 
+    # The k8s-service-info relation is optional: katib-ui should reach active status on its
+    # own, falling back to the Kubernetes-injected katib-db-manager Service env vars.
+    # NOTE: idle_period is used to ensure all resources are deployed
+    await ops_test.model.wait_for_idle(
+        apps=[APP_NAME], status="active", raise_on_blocked=True, timeout=60 * 10, idle_period=30
+    )
+    assert ops_test.model.applications[APP_NAME].units[0].workload_status == "active"
+
     # Deploy dependency katib-db-manager and integrate to provide the
-    # k8s-service-info relation required by katib-ui.
+    # k8s-service-info relation, then assert katib-ui is still active.
     await ops_test.model.deploy(
         KATIB_DB_MANAGER.charm, channel=KATIB_DB_MANAGER.channel, trust=KATIB_DB_MANAGER.trust
     )
     await ops_test.model.integrate(APP_NAME, KATIB_DB_MANAGER.charm)
 
-    # NOTE: idle_period is used to ensure all resources are deployed.
-    # raise_on_blocked is disabled because katib-ui is transiently blocked at
-    # startup until the k8s-service-info relation data is received.
     await ops_test.model.wait_for_idle(
-        apps=[APP_NAME], status="active", raise_on_blocked=False, timeout=60 * 10, idle_period=30
+        apps=[APP_NAME], status="active", raise_on_blocked=True, timeout=60 * 10, idle_period=30
     )
     assert ops_test.model.applications[APP_NAME].units[0].workload_status == "active"
 
