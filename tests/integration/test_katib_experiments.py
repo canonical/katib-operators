@@ -52,7 +52,7 @@ async def training_operator(ops_test: OpsTest):
 
 
 @pytest.fixture(scope="module")
-def create_profile(lightkube_client):
+def create_profile(lightkube_client: lightkube.Client):
     """Create Profile and handle cleanup at the end of the module tests."""
     resources = list(
         codecs.load_all_yaml(
@@ -79,7 +79,7 @@ def create_profile(lightkube_client):
     [f for f in glob.glob("tests/assets/crs/experiments/*.yaml") if "simple-pbt.yaml" not in f],
 )
 async def test_katib_experiments(
-    create_profile, lightkube_client, training_operator, ops_test: OpsTest, experiment_file
+    create_profile, lightkube_client, training_operator, ops_test: OpsTest, experiment_file: str
 ):
     """Test Katib experiments.
 
