@@ -4,10 +4,10 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
+from charms.istio_ingress_k8s.v0.istio_ingress_route import ProtocolType
 from ops.model import ActiveStatus, BlockedStatus, WaitingStatus
 from ops.testing import Harness
 
-from charms.istio_ingress_k8s.v0.istio_ingress_route import ProtocolType
 from charm import KatibUIOperator
 
 TEST_NAMESPACE = "test-namespace"
