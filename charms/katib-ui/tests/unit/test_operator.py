@@ -4,6 +4,7 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
+from charms.istio_ingress_k8s.v0.istio_ingress_route import ProtocolType
 from ops.model import ActiveStatus, BlockedStatus, WaitingStatus
 from ops.testing import Harness
 
@@ -302,6 +303,31 @@ def test_ambient_ingress_configuration_leader_only(
 
     # The ingress.submit_config should be called during __init__ when unit is leader
     mocked_istio_ingress_route_requirer.return_value.submit_config.assert_called()
+
+
+@pytest.mark.parametrize("tls_enabled, expected_port", [(False, 80), (True, 443)])
+def test_ambient_ingress_listener_port(
+    harness,
+    mocked_resource_handler,
+    mocked_lightkube_client,
+    mocked_kubernetes_service_patcher,
+    mocked_istio_ingress_route_requirer,
+    mocked_service_mesh_consumer,
+    mocked_kubeflow_dashboard_links_requirer,
+    tls_enabled,
+    expected_port,
+):
+    """Test that the ambient ingress listener uses the correct port based on TLS setting."""
+    mock_ingress = mocked_istio_ingress_route_requirer.return_value
+    mock_ingress.tls_enabled = tls_enabled
+
+    harness.begin()
+
+    mock_ingress.submit_config.assert_called_once()
+    config = mock_ingress.submit_config.call_args[0][0]
+    assert len(config.listeners) == 1
+    assert config.listeners[0].port == expected_port
+    assert config.listeners[0].protocol == ProtocolType.HTTP
 
 
 def test_config_changed_event(
