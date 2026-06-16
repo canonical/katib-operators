@@ -3,6 +3,7 @@
 # See LICENSE file for licensing details.
 
 import logging
+from typing import Optional
 
 from charmed_kubeflow_chisme.kubernetes import KubernetesResourceHandler as KRH  # noqa: N817
 from charmed_kubeflow_chisme.pebble import update_layer
@@ -22,6 +23,12 @@ from charms.kubeflow_dashboard.v0.kubeflow_dashboard_links import (
     KubeflowDashboardLinksRequirer,
 )
 from charms.loki_k8s.v1.loki_push_api import LogForwarder
+from charms.mlops_libs.v0.k8s_service_info import (
+    KubernetesServiceInfoObject,
+    KubernetesServiceInfoRelationDataMissingError,
+    KubernetesServiceInfoRelationMissingError,
+    KubernetesServiceInfoRequirer,
+)
 from charms.observability_libs.v1.kubernetes_service_patch import KubernetesServicePatch
 from lightkube import ApiError
 from lightkube.generic_resource import load_in_cluster_generic_resources
@@ -36,6 +43,7 @@ HTTP_PATH = "/katib/"
 K8S_RESOURCE_FILES = ["src/templates/auth_manifests.yaml.j2"]
 ISTIO_INGRESS_ROUTE_RELATION = "istio-ingress-route"
 INGRESS_RELATION = "ingress"
+K8S_SERVICE_INFO_RELATION = "k8s-service-info"
 
 
 class CheckFailed(Exception):
@@ -74,6 +82,11 @@ class KatibUIOperator(CharmBase):
 
         self._mesh = ServiceMeshConsumer(self)
 
+        self._k8s_service_info_requirer = KubernetesServiceInfoRequirer(
+            self,
+            relation_name=K8S_SERVICE_INFO_RELATION,
+        )
+
         for event in [
             self.on.install,
             self.on.leader_elected,
@@ -81,6 +94,8 @@ class KatibUIOperator(CharmBase):
             self.on.config_changed,
             self.on[INGRESS_RELATION].relation_changed,
             self.on[ISTIO_INGRESS_ROUTE_RELATION].relation_changed,
+            self.on[K8S_SERVICE_INFO_RELATION].relation_changed,
+            self.on[K8S_SERVICE_INFO_RELATION].relation_broken,
             self.on.katib_ui_pebble_ready,
         ]:
             self.framework.observe(event, self.main)
@@ -132,8 +147,23 @@ class KatibUIOperator(CharmBase):
         context = {"app_name": self.model.app.name, "namespace": self.model.name}
         return context
 
-    @property
-    def _katib_ui_layer(self) -> Layer:
+    def _katib_ui_layer(
+        self, db_manager_service_info: Optional[KubernetesServiceInfoObject]
+    ) -> Layer:
+        environment = {"KATIB_CORE_NAMESPACE": self.model.name}
+        # When the k8s-service-info relation is present, explicitly set
+        # KATIB_DB_MANAGER_SERVICE_HOST and KATIB_DB_MANAGER_SERVICE_PORT from the relation
+        # data to avoid relying on the environment variables Kubernetes injects at pod startup.
+        # Juju initially creates the katib-db-manager Service with a placeholder port (65535)
+        # and the charm patches it shortly after; relying on the injected values leads to a
+        # race condition (see issue #407). When the relation is absent, the charm falls back to
+        # the Kubernetes-injected variables for backward compatibility.
+        if db_manager_service_info is not None:
+            environment["KATIB_DB_MANAGER_SERVICE_HOST"] = (
+                f"{db_manager_service_info.name}.{self.model.name}.svc"
+            )
+            environment["KATIB_DB_MANAGER_SERVICE_PORT"] = str(db_manager_service_info.port)
+
         layer_config = {
             "summary": "katib-ui-operator layer",
             "description": "pebble config layer for katib-ui-operator",
@@ -149,7 +179,7 @@ class KatibUIOperator(CharmBase):
                     # of "/app", which is used if working-dir is not set here.
                     "working-dir": "/app",
                     "startup": "enabled",
-                    "environment": {"KATIB_CORE_NAMESPACE": self.model.name},
+                    "environment": environment,
                 }
             },
         }
@@ -210,6 +240,29 @@ class KatibUIOperator(CharmBase):
         if not self.container.can_connect():
             raise CheckFailed("Pod startup is not complete", MaintenanceStatus)
 
+    def _get_db_manager_service_info(self) -> Optional[KubernetesServiceInfoObject]:
+        """Return the katib-db-manager Service info from the k8s-service-info relation.
+
+        Returns None when the relation is absent or its data is not yet available, so that
+        the charm remains backward compatible and falls back to the environment variables
+        Kubernetes injects at pod startup.
+        """
+        try:
+            return self._k8s_service_info_requirer.get_data()
+        except KubernetesServiceInfoRelationMissingError:
+            self.logger.info(
+                f"Relation {K8S_SERVICE_INFO_RELATION} is missing. Falling back to the"
+                " Kubernetes-injected katib-db-manager Service environment variables."
+            )
+            return None
+        except KubernetesServiceInfoRelationDataMissingError as data_error:
+            self.logger.warning(
+                f"Empty or missing data in {K8S_SERVICE_INFO_RELATION} relation. Falling back"
+                " to the Kubernetes-injected katib-db-manager Service environment variables."
+                f" Got: {data_error.message}"
+            )
+            return None
+
     def _handle_ingress(self, interfaces):
         if interfaces[INGRESS_RELATION]:
             interfaces[INGRESS_RELATION].send_data(
@@ -242,10 +295,16 @@ class KatibUIOperator(CharmBase):
             self._check_container_connection()
             self._check_leader()
             self._check_istio_relations()
+            db_manager_service_info = self._get_db_manager_service_info()
             interfaces = self._get_interfaces()
             self._handle_ingress(interfaces)
             self._deploy_k8s_resources()
-            update_layer(self._container_name, self.container, self._katib_ui_layer, self.logger)
+            update_layer(
+                self._container_name,
+                self.container,
+                self._katib_ui_layer(db_manager_service_info),
+                self.logger,
+            )
         except CheckFailed as e:
             self.model.unit.status = e.status
             return
