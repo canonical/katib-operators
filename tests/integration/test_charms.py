@@ -80,6 +80,7 @@ async def test_deploy_katib_charms(ops_test: OpsTest, request: pytest.FixtureReq
         f"{DB_MANAGER_APP_NAME}:relational-db", f"{DB_APP_NAME}:database"
     )
     await ops_test.model.add_relation(DB_MANAGER_APP_NAME, CONTROLLER_APP_NAME)
+    await ops_test.model.add_relation(DB_MANAGER_APP_NAME, UI_APP_NAME)
 
     await ops_test.model.wait_for_idle(
         status="active",
