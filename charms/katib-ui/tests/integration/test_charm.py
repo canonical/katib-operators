@@ -1,0 +1,65 @@
+# Copyright 2025 Canonical Ltd.
+# See LICENSE file for licensing details.
+
+"""Integration tests for Katib UI Operator/Charm."""
+
+from pathlib import Path
+
+import pytest
+import yaml
+
+from charms_dependencies import KATIB_DB_MANAGER
+from lightkube import Client
+from pytest_operator.plugin import OpsTest
+
+METADATA = yaml.safe_load(Path("./metadata.yaml").read_text())
+APP_NAME = METADATA["name"]
+
+
+@pytest.fixture(scope="session")
+def lightkube_client() -> Client:
+    """Returns lightkube Kubernetes client"""
+    client = Client(field_manager=f"{APP_NAME}")
+    return client
+
+
+@pytest.mark.skip_if_deployed
+@pytest.mark.abort_on_fail
+async def test_build_and_deploy(ops_test: OpsTest, request):
+    """Build and deploy the charm.
+
+    Assert on the unit status.
+    """
+    # Keep the option to run the integration tests locally
+    # by building the charm and then deploying
+    entity_url = (
+        await ops_test.build_charm("./")
+        if not (entity_url := request.config.getoption("--charm-path"))
+        else entity_url
+    )
+    image_path = METADATA["resources"]["oci-image"]["upstream-source"]
+    resources = {"oci-image": image_path}
+
+    await ops_test.model.deploy(
+        entity_url, resources=resources, application_name=APP_NAME, trust=True
+    )
+
+    # The k8s-service-info relation is optional: katib-ui should reach active status on its
+    # own, falling back to the Kubernetes-injected katib-db-manager Service env vars.
+    # NOTE: idle_period is used to ensure all resources are deployed
+    await ops_test.model.wait_for_idle(
+        apps=[APP_NAME], status="active", raise_on_blocked=True, timeout=60 * 10, idle_period=30
+    )
+    assert ops_test.model.applications[APP_NAME].units[0].workload_status == "active"
+
+    # Deploy dependency katib-db-manager and integrate to provide the
+    # k8s-service-info relation, then assert katib-ui is still active.
+    await ops_test.model.deploy(
+        KATIB_DB_MANAGER.charm, channel=KATIB_DB_MANAGER.channel, trust=KATIB_DB_MANAGER.trust
+    )
+    await ops_test.model.integrate(APP_NAME, KATIB_DB_MANAGER.charm)
+
+    await ops_test.model.wait_for_idle(
+        apps=[APP_NAME], status="active", raise_on_blocked=True, timeout=60 * 10, idle_period=30
+    )
+    assert ops_test.model.applications[APP_NAME].units[0].workload_status == "active"
