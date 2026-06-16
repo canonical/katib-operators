@@ -13,6 +13,7 @@ output "requires" {
     dashboard_links     = "dashboard-links",
     ingress             = "ingress",
     istio_ingress_route = "istio-ingress-route",
+    k8s_service_info    = "k8s-service-info",
     logging             = "logging",
     require_cmr_mesh    = "require-cmr-mesh",
     service_mesh        = "service-mesh"
