@@ -289,6 +289,30 @@ def test_both_istio_relations_blocked(
     )
 
 
+def test_multiple_istio_ingress_route_relations(
+    harness,
+    mocked_resource_handler,
+    mocked_lightkube_client,
+    mocked_kubernetes_service_patcher,
+    mocked_istio_ingress_route_requirer,
+    mocked_service_mesh_consumer,
+    mocked_kubeflow_dashboard_links_requirer,
+    mocked_load_in_cluster_generic_resources,
+):
+    """Test that multiple istio-ingress-route relations are handled without erroring."""
+    harness.begin()
+
+    # Add more than one relation on the ambient ingress endpoint
+    harness.add_relation(ISTIO_INGRESS_ROUTE_RELATION, ISTIO_INGRESS_K8S_APP)
+    harness.add_relation(ISTIO_INGRESS_ROUTE_RELATION, f"{ISTIO_INGRESS_K8S_APP}-2")
+
+    # Inspecting the full list of relations per endpoint must not raise even
+    # though there is more than one relation on a single endpoint.
+    harness.charm._check_istio_relations()
+
+    assert not isinstance(harness.charm.model.unit.status, BlockedStatus)
+
+
 def test_ambient_ingress_configuration_leader_only(
     harness,
     mocked_resource_handler,
