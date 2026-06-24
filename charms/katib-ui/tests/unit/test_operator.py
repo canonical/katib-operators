@@ -4,7 +4,11 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
-from charms.istio_ingress_k8s.v0.istio_ingress_route import ProtocolType
+from charms.istio_ingress_k8s.v0.istio_ingress_route import (
+    HTTPPathMatchType,
+    IstioIngressRouteConfig,
+    ProtocolType,
+)
 from ops.model import ActiveStatus, BlockedStatus, WaitingStatus
 from ops.testing import Harness
 
@@ -16,6 +20,9 @@ ISTIO_INGRESS_ROUTE_RELATION = "istio-ingress-route"
 INGRESS_RELATION = "ingress"
 ISTIO_GATEWAY_APP = "istio-gateway"
 ISTIO_INGRESS_K8S_APP = "istio-ingress-k8s"
+SECOND_ISTIO_INGRESS_K8S_APP = f"{ISTIO_INGRESS_K8S_APP}-2"
+HTTP_PATH = "/katib/"
+HTTP_SECTION_NAME = "http-80"
 K8S_SERVICE_INFO_RELATION = "k8s-service-info"
 DB_MANAGER_APP = "katib-db-manager"
 DB_MANAGER_SERVICE_NAME = "katib-db-manager"
@@ -287,6 +294,66 @@ def test_both_istio_relations_blocked(
         f"Cannot have both '{ISTIO_INGRESS_ROUTE_RELATION}' and '{INGRESS_RELATION}' relations"
         in str(harness.charm.model.unit.status.message)
     )
+
+
+def test_multiple_istio_ingress_route_relations(
+    harness,
+    mocked_resource_handler,
+    mocked_lightkube_client,
+    mocked_kubernetes_service_patcher,
+    mocked_istio_ingress_route_requirer,
+    mocked_service_mesh_consumer,
+    mocked_kubeflow_dashboard_links_requirer,
+    mocked_load_in_cluster_generic_resources,
+):
+    """Test the charm reconciles to active with more than one istio-ingress-route relation."""
+    # Add more than one relation on the ambient ingress endpoint
+    harness.add_relation(ISTIO_INGRESS_ROUTE_RELATION, ISTIO_INGRESS_K8S_APP)
+    harness.add_relation(ISTIO_INGRESS_ROUTE_RELATION, SECOND_ISTIO_INGRESS_K8S_APP)
+
+    harness.begin_with_initial_hooks()
+    harness.charm.on.config_changed.emit()
+
+    # More than one relation on the istio-ingress-route endpoint must not block
+    # the charm; it should reconcile all the way to active.
+    assert isinstance(harness.charm.model.unit.status, ActiveStatus)
+
+
+def test_each_istio_ingress_route_relation_receives_config(
+    harness,
+    mocked_resource_handler,
+    mocked_lightkube_client,
+    mocked_kubernetes_service_patcher,
+    mocked_service_mesh_consumer,
+    mocked_kubeflow_dashboard_links_requirer,
+    mocked_load_in_cluster_generic_resources,
+):
+    """Test that an HTTPRoute config is submitted to every istio-ingress-route relation."""
+    # Arrange (note: the real IstioIngressRouteRequirer is used here, not the mock,
+    # so we can assert on the config it writes to each relation databag).
+    rel_id_1 = harness.add_relation(ISTIO_INGRESS_ROUTE_RELATION, ISTIO_INGRESS_K8S_APP)
+    rel_id_2 = harness.add_relation(ISTIO_INGRESS_ROUTE_RELATION, SECOND_ISTIO_INGRESS_K8S_APP)
+
+    # Act
+    harness.begin()
+
+    # Assert
+    # Each relation's application databag should contain a valid config that
+    # defines the katib-ui HTTPRoute, proving the lib handles every ingress.
+    for rel_id in (rel_id_1, rel_id_2):
+        app_data = harness.get_relation_data(rel_id, harness.charm.app.name)
+        assert "config" in app_data
+
+        config = IstioIngressRouteConfig.model_validate_json(app_data["config"])
+        assert len(config.http_routes) == 1
+        http_route = config.http_routes[0]
+        assert http_route.matches[0].path.type == HTTPPathMatchType.PathPrefix
+        assert http_route.matches[0].path.value == HTTP_PATH
+        assert http_route.backends[0].service == harness.charm.app.name
+        assert http_route.backends[0].port == harness.charm.model.config["port"]
+        # The route's parent (the Gateway listener referenced under parentRefs in
+        # the HTTPRouteSpec) should be the expected HTTP listener.
+        assert http_route.listener.name == HTTP_SECTION_NAME
 
 
 def test_ambient_ingress_configuration_leader_only(
